@@ -8,8 +8,8 @@ class DisplayObserver(Observer):
     
     """
     stft_length: Length of the shoft-time fourier transform to use
-    n_bins: Length of the frequency-domain bins to be used in the frequency plot
     sample_freq: Sampling rate of the audio source in hz
+    freq_range: Frequencies to return data for
     """
     def __init__(self, stft_length=1024, sample_freq=44100,
                  freq_range=[0,20000]):
@@ -21,7 +21,9 @@ class DisplayObserver(Observer):
     def update(self, *args, **kwargs):
         # Transform data
         input_data = np.fromstring(args[0], dtype=np.int16)
-        frequencies,_,data = signal.spectrogram(input_data, fs=self.sample_freq, nfft=self.stft_length*32, nperseg=self.stft_length)
+        frequencies,_,data = signal.spectrogram(input_data, fs=self.sample_freq, 
+                                nfft=self.stft_length*32, nperseg=self.stft_length
+                                scaling='spectrum')
         
         if data.shape[0] < 1:
             return
