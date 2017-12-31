@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from scipy import signal
+from scipy.signal import spectrogram
 
 from observer import Observer
 
@@ -20,10 +20,8 @@ class DisplayObserver(Observer):
 
     def update(self, *args, **kwargs):
         # Transform data
-        input_data = np.fromstring(args[0], dtype=np.int16)
-        frequencies,_,data = signal.spectrogram(input_data, fs=self.sample_freq, 
-                                nfft=self.stft_length*32, nperseg=self.stft_length
-                                scaling='spectrum')
+        input_data = np.fromstring(args[0], dtype=np.int16)        
+        frequencies, data = self.transform(input_data)
         
         if data.shape[0] < 1:
             return
@@ -38,6 +36,14 @@ class DisplayObserver(Observer):
         graph_data = graph_data[graph_data['freq'] < self.freq_range[1]]
         graph_data = graph_data[graph_data['freq'] > self.freq_range[0]]
         self.graph_data = graph_data
+    
+    def transform(self, input_data):
+        frequencies,_,data = spectrogram(input_data, fs=self.sample_freq, 
+                                nfft=self.stft_length*32, nperseg=self.stft_length,
+                                scaling='spectrum')
+        return (frequencies, data)
+        
+        
 
 class SoundObserver(Observer):
         def __init__(self, stream):

@@ -11,7 +11,7 @@ import sys
 from threading import Thread, Event, Condition, Semaphore
 
 from observable import Observable
-from audio_observable import DisplayObserver, SoundObserver
+from observers import DisplayObserver, SoundObserver
 
 
 class SpectrumWidget(QWidget):
@@ -109,7 +109,7 @@ class SpectrumWidget(QWidget):
         observable.register(sound_player)
         observable.register(displayer)
         
-        data = audio_data.readframes(self.read_length)  
+        data = audio_data.readframes(self.read_length)      
         while data:  
             self.playaudiocond.acquire()
             if not self.playaudioflag:
@@ -165,6 +165,8 @@ class SpectrumWidget(QWidget):
             self.playaudiocond.notify()
             self.playaudiocond.release()
         self.playaudioflag = not self.playaudioflag
+        
+    
             
             
         
