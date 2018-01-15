@@ -19,7 +19,7 @@ class CepstrumWidget(QWidget):
         self.setLayout(self.layout)
         
         # Defaults              
-        self.read_length = 2**14
+        self.read_length = 2**10
         self.freq_range = [30, 2000]
         
         # Plots
@@ -41,12 +41,10 @@ class CepstrumWidget(QWidget):
     def cepstrum(self, data):
         return np.absolute(ifft(np.log2(np.absolute(fft(data)))**2))**2
     
-    def detect_pitch(self, data):
-        pass
 
     def detect_pitch(self):     
         # Open file
-        sound_file = ".\\singing_samples\\a_yeah_yeah.wav"
+        sound_file = ".\\singing_samples\\opera_tenor.wav"
         audio_data = wave.open(sound_file, 'rb')
         
         p = pyaudio.PyAudio()  

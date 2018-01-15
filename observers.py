@@ -39,7 +39,7 @@ class DisplayObserver(Observer):
     
     def transform(self, input_data):
         frequencies,_,data = spectrogram(input_data, fs=self.sample_freq, 
-                                nfft=self.stft_length*32, nperseg=self.stft_length,
+                                nfft=self.stft_length*4, nperseg=self.stft_length,
                                 scaling='spectrum')
         return (frequencies, data)
         
