@@ -9,7 +9,7 @@ from observers import SoundObserver
 from observable import Observable
 
 #%% Open sound file, prepare arrays
-sound_file = ".\\singing_samples\\a_yeah_yeah.wav"
+sound_file = ".\\singing_samples\\rehearsal_music.wav" # 'a' note
 audio_data = wave.open(sound_file, 'rb')
 
 p = pyaudio.PyAudio()  
@@ -42,7 +42,7 @@ def difference_val(data, read_length):
 
 #%% Find pitch for chunks of data
 while data:  
-    observable.update_observers(data)
+    #observable.update_observers(data)
     data = np.fromstring(data, dtype=np.int16)
     if data.shape[0] < read_length*2:
         data = audio_data.readframes(read_length)

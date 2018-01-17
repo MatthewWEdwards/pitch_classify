@@ -3,7 +3,7 @@ import numpy as np
 import wave
 import pyaudio  
 import pyqtgraph as pg
-from PyQt5 import QtGui
+from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QFileDialog
 from PyQt5.QtWidgets import QFileDialog, QLineEdit
 from PyQt5.QtCore import pyqtSlot
@@ -14,7 +14,7 @@ from observable import Observable
 from observers import DisplayObserver, SoundObserver
 
 
-class SpectrumWidget(QWidget):
+class SpectrumWidget(QWidget, Observable):
 
     def __init__(self):
         super(QWidget, self).__init__()
@@ -65,7 +65,6 @@ class SpectrumWidget(QWidget):
         
         self.plot.setXRange(self.freq_range[0], self.freq_range[1])
         self.plot.setYRange(0, 10**6)
-
         
         self.plot.setLogMode(False, False)
         self.line = self.plot.plot(pen='y')
@@ -95,6 +94,8 @@ class SpectrumWidget(QWidget):
           accept multiple file types.
     """
     def play_audio(self, audio_data):
+        self.update_observers(clear_flag = True) # Clear plots
+
         p = pyaudio.PyAudio()  
         stream = p.open(format = p.get_format_from_width(audio_data.getsampwidth()),  
                         channels = audio_data.getnchannels(),  
@@ -102,20 +103,18 @@ class SpectrumWidget(QWidget):
                         output = True)  
         
         # Set up Observer-Listeners
-        observable = Observable()
         sound_player = SoundObserver(stream)
         #TODO: Make customizable
-        displayer = DisplayObserver(stft_length = self.read_length, freq_range=[30,2000])
-        observable.register(sound_player)
-        observable.register(displayer)
+        displayer = DisplayObserver(stft_length = self.read_length, freq_range=[30,2000], hann=True)
+        self.register(sound_player)
+        self.register(displayer)
         
         data = audio_data.readframes(self.read_length)      
         while data:  
             self.playaudiocond.acquire()
             if not self.playaudioflag:
                 self.playaudiocond.wait()
-            data = audio_data.readframes(self.read_length)  
-            observable.update_observers(data)
+            self.update_observers(data = data)
             disp_data = displayer.graph_data
             # Difference here done for efficiency reasons (RE: Pandas)
             if self.decibles:
@@ -124,6 +123,11 @@ class SpectrumWidget(QWidget):
                 self.line.setData(disp_data['freq'].as_matrix(), disp_data['magnitude'].as_matrix())
             QtGui.QApplication.processEvents() 
             self.playaudiocond.release()
+            data = audio_data.readframes(self.read_length)  
+            
+        self.unregister(sound_player)
+        self.unregister(displayer)
+
         
     # Button functions
     def log_click(self):
@@ -166,16 +170,14 @@ class SpectrumWidget(QWidget):
             self.playaudiocond.release()
         self.playaudioflag = not self.playaudioflag
         
-    
-            
-            
         
 if __name__ == "__main__":
    # Needed because pyQT remains in spyder namespace
-    if not QtGui.QApplication.instance():
-        app = QtGui.QApplication([])
-    else:
-        app = QtGui.QApplication.instance() 
+    app = QtCore.QCoreApplication.instance()
+    if app is None:
+        app = QtWidgets.QApplication(sys.argv)
+        
+        
     app.exec_()
     s_w = SpectrumWidget()
     while True:

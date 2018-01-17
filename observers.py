@@ -10,17 +10,23 @@ class DisplayObserver(Observer):
     stft_length: Length of the shoft-time fourier transform to use
     sample_freq: Sampling rate of the audio source in hz
     freq_range: Frequencies to return data for
+    hann: If true, multiply the data by a hanning window before taking the fft
     """
     def __init__(self, stft_length=1024, sample_freq=44100,
-                 freq_range=[0,20000]):
+                 freq_range=[0,20000], hann = False):
         # Grab inputs
         self.stft_length = stft_length
         self.sample_freq = sample_freq
         self.freq_range = freq_range
+        self.hann = hann
 
     def update(self, *args, **kwargs):
         # Transform data
-        input_data = np.fromstring(args[0], dtype=np.int16)        
+        data = kwargs.get('data', False)
+        if not data:
+            return
+        
+        input_data = np.fromstring(data, dtype=np.int16)        
         frequencies, data = self.transform(input_data)
         
         if data.shape[0] < 1:
@@ -38,6 +44,9 @@ class DisplayObserver(Observer):
         self.graph_data = graph_data
     
     def transform(self, input_data):
+        if self.hann:
+            input_data = input_data * np.hanning(len(input_data))    
+        
         frequencies,_,data = spectrogram(input_data, fs=self.sample_freq, 
                                 nfft=self.stft_length*4, nperseg=self.stft_length,
                                 scaling='spectrum')
@@ -50,7 +59,10 @@ class SoundObserver(Observer):
             self.stream = stream
         
         def update(self, *args, **kwargs):
-            self.stream.write(args[0])
+            data = kwargs.get('data', False)
+            if not data:
+                return
+            self.stream.write(data)
     
     
     
