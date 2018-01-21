@@ -1,24 +1,19 @@
-import pandas as pd
 import numpy as np
-import wave
-from scipy import signal
-import pyaudio  
 import pyqtgraph as pg
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QFileDialog
 from PyQt5.QtWidgets import QSpinBox, QSlider
 from PyQt5.QtCore import pyqtSlot
-import sys
 
-from audio_observable import DisplayObserver as dis
+from observers import DisplayObserver as dis
 
 class FilePlayer(QWidget):
     
     def __init__(self, DisplayObserver):
         QtGui.QWidget.__init__(self)
-        
         self.layout = QtGui.QGridLayout()
         self.setLayout(self.layout)
+        self.plot = 
         self.layout.addWidget(DisplayObserver, 0, 0)
         self.show()
         
@@ -58,6 +53,7 @@ class FilePlayer(QWidget):
 # Plot Test
 if __name__ == "__main__":
    # Needed because pyQT remains in spyder namespace
+    app = None
     if not QtGui.QApplication.instance():
         app = QtGui.QApplication([])
     else:

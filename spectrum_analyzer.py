@@ -15,6 +15,10 @@ from observers import DisplayObserver, SoundObserver
 
 
 class SpectrumWidget(QWidget, Observable):
+    
+    signal = QtCore.pyqtSignal(list, bool)
+    playing_flag = False
+
 
     def __init__(self):
         super(QWidget, self).__init__()
@@ -59,7 +63,7 @@ class SpectrumWidget(QWidget, Observable):
         self.decibles = False
         self.freq_range = [30, 2000]
         self.fileName = ""
-        self.read_length = 2048 # TODO: Make customizable
+        self.read_length = 4096 # TODO: Make customizable
         self.playaudioflag = False
         self.playaudiocond = Condition()
         
@@ -68,6 +72,7 @@ class SpectrumWidget(QWidget, Observable):
         
         self.plot.setLogMode(False, False)
         self.line = self.plot.plot(pen='y')
+        
         
         self.show()
     
@@ -85,8 +90,9 @@ class SpectrumWidget(QWidget, Observable):
         audio_data = wave.open(sound_file, 'rb')
         
         self.playaudioflag = True
-        self.audiothread = Thread(target = self.play_audio, args = (audio_data, ))
-        self.audiothread.start()
+        self.play_audio(audio_data)
+        #self.audiothread = Thread(target = self.play_audio, args = (audio_data, ))
+        #self.audiothread.start()
     
     """
     audio_data: file object from the output of a call to wave.read()
@@ -94,8 +100,8 @@ class SpectrumWidget(QWidget, Observable):
           accept multiple file types.
     """
     def play_audio(self, audio_data):
+        self.playing_flag = True
         self.update_observers(clear_flag = True) # Clear plots
-
         p = pyaudio.PyAudio()  
         stream = p.open(format = p.get_format_from_width(audio_data.getsampwidth()),  
                         channels = audio_data.getnchannels(),  
@@ -111,9 +117,11 @@ class SpectrumWidget(QWidget, Observable):
         
         data = audio_data.readframes(self.read_length)      
         while data:  
+            
             self.playaudiocond.acquire()
             if not self.playaudioflag:
                 self.playaudiocond.wait()
+                
             self.update_observers(data = data)
             disp_data = displayer.graph_data
             # Difference here done for efficiency reasons (RE: Pandas)
@@ -121,13 +129,17 @@ class SpectrumWidget(QWidget, Observable):
                 self.line.setData(disp_data['freq'].as_matrix(), 20*np.log2(1+disp_data['magnitude']).as_matrix())
             else:
                 self.line.setData(disp_data['freq'].as_matrix(), disp_data['magnitude'].as_matrix())
+           
             QtGui.QApplication.processEvents() 
             self.playaudiocond.release()
             data = audio_data.readframes(self.read_length)  
+            data_list = list(np.fromstring(data, dtype=np.int16))
+            self.signal.emit(data_list, False)
             
         self.unregister(sound_player)
         self.unregister(displayer)
-
+        p.close(stream)
+        self.playing_flag = False
         
     # Button functions
     def log_click(self):
@@ -161,7 +173,8 @@ class SpectrumWidget(QWidget, Observable):
         self.filetext.setText(self.fileName) 
         
     def play_click(self):
-        self.start_audio()
+        if not self.playing_flag:
+            self.start_audio()
     
     def pause_click(self):
         if not self.playaudioflag:

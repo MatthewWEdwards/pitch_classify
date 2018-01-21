@@ -24,7 +24,8 @@ class SpectrumCepstrum(QWidget):
         
         self.spec = spec
         self.ceps = ceps
-        self.spec.register(self.ceps)
+        
+        spec.signal.connect(ceps.update_trigger)
 
         self.layout.addWidget(self.spec, 0, 0)
         self.layout.addWidget(self.ceps, 1, 0)

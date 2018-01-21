@@ -14,7 +14,7 @@ from observers import SoundObserver
 from noconflict import classmaker
 
 
-class CepstrumWidget(QWidget, Observer):
+class CepstrumWidget(QWidget):
     __metaclass__ = classmaker()
     
     def __init__(self):
@@ -24,7 +24,7 @@ class CepstrumWidget(QWidget, Observer):
         self.setLayout(self.layout)
         
         # Defaults              
-        self.read_length = 2**10
+        self.read_length = 2**11
         self.freq_range = [30, 2000]
         
         # Plots
@@ -99,24 +99,17 @@ class CepstrumWidget(QWidget, Observer):
             data = audio_data.readframes(self.read_length)
             
     """
-    args[0]: One frame of data to be analyzed by the cesptrum widget. The primary
-    frequency will be identified and the pitch plot will gain one data point.
-    
-    args[1]: If true, reset data.
-    
     Sound will not be played by this function
     """
-    def update(self, *args, **kwargs):
-        clear_flag = kwargs.get('clear_flag', False)
+    def update_trigger(self, data, clear_flag):
         if clear_flag:
             self.pitch_data = np.array([0])
             return
         
-        data = kwargs.get('data', False)
         if not data:
             return
         
-        data = np.fromstring(data, dtype=np.int16)
+        data = np.array(data)
         
         # Update cepstrum plot
         self.cepstrum_data = self.cepstrum(data)     
