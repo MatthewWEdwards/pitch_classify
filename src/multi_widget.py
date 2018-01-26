@@ -1,35 +1,29 @@
-import pandas
-import numpy as np
-import wave
-import pyaudio  
-import pyqtgraph as pg
 from PyQt5 import QtGui, QtCore, QtWidgets
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QFileDialog
-from PyQt5.QtWidgets import QFileDialog, QLineEdit
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtWidgets import QWidget
 import sys
-from threading import Thread, Event, Condition, Semaphore
 
-from observable import Observable
-from observers import DisplayObserver, SoundObserver
 from spectrum_analyzer import SpectrumWidget
 from cepstrum import CepstrumWidget
+from yin_personal import YinWidget
 
-class SpectrumCepstrum(QWidget):
+class MultiWidget(QWidget):
 
-    def __init__(self, spec = SpectrumWidget(), ceps = CepstrumWidget()):
+    def __init__(self, spec = SpectrumWidget(), ceps = CepstrumWidget(),
+                 yin = YinWidget()):
         super(QWidget, self).__init__()
         self.layout = QtGui.QGridLayout()
         self.setLayout(self.layout)
         
         self.spec = spec
         self.ceps = ceps
+        self.yin = yin
         
         spec.signal.connect(ceps.update_trigger)
+        spec.signal.connect(yin.update_trigger)
 
         self.layout.addWidget(self.spec, 0, 0)
         self.layout.addWidget(self.ceps, 1, 0)
-        
+        self.layout.addWidget(self.yin, 2, 0)       
         self.show()
         
         
@@ -40,7 +34,7 @@ if __name__ == '__main__':
         app = QtWidgets.QApplication(sys.argv)
     app.exec_()
     
-    m_w = SpectrumCepstrum()
+    m_w = MultiWidget()
     while True:
         QtGui.QApplication.processEvents()
         

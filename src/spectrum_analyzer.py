@@ -19,7 +19,6 @@ class SpectrumWidget(QWidget, Observable):
     signal = QtCore.pyqtSignal(list, bool)
     playing_flag = False
 
-
     def __init__(self):
         super(QWidget, self).__init__()
         

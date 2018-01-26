@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import QWidget
 import sys
 
 from observable import Observable
-from observer import Observer
 from observers import SoundObserver
 
 from noconflict import classmaker
@@ -99,7 +98,7 @@ class CepstrumWidget(QWidget):
             data = audio_data.readframes(self.read_length)
             
     """
-    Sound will not be played by this function
+    Sound is not played by this function
     """
     def update_trigger(self, data, clear_flag):
         if clear_flag:
