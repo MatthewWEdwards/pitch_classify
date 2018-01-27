@@ -2,6 +2,7 @@ import numpy as np
 import wave
 import pyaudio
 import pyqtgraph as pg
+import yaml
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import QWidget
 
@@ -19,9 +20,11 @@ class YinWidget(QWidget):
         self.layout = QtGui.QGridLayout()
         self.setLayout(self.layout)
         
-        # Defaults              
-        self.read_length = 2**11
-        self.freq_range = [30, 500]
+        # Config Values              
+        config = yaml.load(file('..\\config.yaml', 'rb').read())
+        self.read_length = config['read_length']
+        self.freq_range = [config['plots']['freq_min'], config['plots']['freq_max']]
+        self.sample_freq = config['sample_frequency']
         
         # Plots
         self.yin_plot = pg.PlotWidget()
@@ -80,10 +83,10 @@ class YinWidget(QWidget):
         # Choose between value from step 3 and value from step 4
         if len(period_candiates) == 0: # if no candidates found
             d[:50] = np.inf
-            pitch_d = 44100/np.argmin(d)
+            pitch_d = self.sample_freq/np.argmin(d)
         else:
             sorted_candidates = sorted(period_candiates.iteritems(), key=lambda(k,v): (v,k))
-            pitch_d = 44100/sorted_candidates[0][0]
+            pitch_d = self.sample_freq/sorted_candidates[0][0]
             
         ## End YIN algorithm
                         

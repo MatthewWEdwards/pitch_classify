@@ -1,18 +1,16 @@
-import pandas
 import numpy as np
 import wave
 import pyaudio  
+import yaml
 import pyqtgraph as pg
 from PyQt5 import QtGui, QtCore, QtWidgets
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QFileDialog
-from PyQt5.QtWidgets import QFileDialog, QLineEdit
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtWidgets import QWidget, QPushButton, QFileDialog
+from PyQt5.QtWidgets import QLineEdit
 import sys
-from threading import Thread, Event, Condition, Semaphore
+from threading import Condition, Thread
 
 from observable import Observable
 from observers import DisplayObserver, SoundObserver
-
 
 class SpectrumWidget(QWidget, Observable):
     
@@ -24,12 +22,13 @@ class SpectrumWidget(QWidget, Observable):
         
         self.layout = QtGui.QGridLayout()
         
-        # Plot
+        ### Plot ###
         self.plot = pg.PlotWidget()
         self.layout.addWidget(self.plot, 0, 1, 3, 1) # Main freq graph
         self.setLayout(self.layout)
         self.line = self.plot.plot(pen='y')
         self.plot.setMouseEnabled(False, False)
+        ### End Plot ###
         
         ### Buttons ###
         self.playbtn = QPushButton('Play File')
@@ -56,13 +55,13 @@ class SpectrumWidget(QWidget, Observable):
         self.pausebtn.clicked.connect(self.pause_click)
         ### End Buttons ###
         
-        
         ### Defaults ###
+        config = yaml.load(file('..\\config.yaml', 'rb').read())
         self.logscale = False
         self.decibles = False
-        self.freq_range = [30, 2000]
+        self.freq_range = [config['plots']['freq_min'], config['plots']['freq_max']]
         self.fileName = ""
-        self.read_length = 4096 # TODO: Make customizable
+        self.read_length = config['read_length'] # TODO: Make customizable
         self.playaudioflag = False
         self.playaudiocond = Condition()
         
@@ -71,7 +70,7 @@ class SpectrumWidget(QWidget, Observable):
         
         self.plot.setLogMode(False, False)
         self.line = self.plot.plot(pen='y')
-        
+        ### End Defaults ###
         
         self.show()
     
@@ -110,7 +109,8 @@ class SpectrumWidget(QWidget, Observable):
         # Set up Observer-Listeners
         sound_player = SoundObserver(stream)
         #TODO: Make customizable
-        displayer = DisplayObserver(stft_length = self.read_length, freq_range=[30,2000], hann=True)
+        displayer = DisplayObserver(stft_length = self.read_length, 
+                        freq_range=self.freq_range, hann=True)
         self.register(sound_player)
         self.register(displayer)
         
@@ -153,14 +153,14 @@ class SpectrumWidget(QWidget, Observable):
         
         # Idk why this is necessary here but it is
         if self.decibles:
-            self.plot.setYRange(0,150)
+            self.plot.setYRange(0,340)
         else:
             self.plot.setYRange(0, 10**6)
             
     def decible_click(self):
         self.decibles = not self.decibles
         if self.decibles:
-            self.plot.setYRange(0,150)
+            self.plot.setYRange(0,340) # TODO: make this actually based on data
         else:
             self.plot.setYRange(0, 10**6)
 

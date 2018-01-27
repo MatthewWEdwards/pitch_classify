@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.fftpack import fft, ifft
 import wave
+import yaml
 import pyaudio
 import pyqtgraph as pg
 from PyQt5 import QtGui, QtCore, QtWidgets
@@ -23,8 +24,10 @@ class CepstrumWidget(QWidget):
         self.setLayout(self.layout)
         
         # Defaults              
-        self.read_length = 2**11
-        self.freq_range = [30, 2000]
+        config = yaml.load(file('..\\config.yaml', 'rb').read())
+        self.read_length = config['read_length']
+        self.freq_range = [config['plots']['freq_min'], config['plots']['freq_max']]
+        self.sample_freq = config['sample_frequency']
         
         # Plots
         self.cepstrum_plot = pg.PlotWidget()
@@ -43,7 +46,7 @@ class CepstrumWidget(QWidget):
         # Init Holders
         self.pitch_data = np.array([0])
         self.cepstrum_data = np.array([0])
-        self.num_display_vals = 300 # TODO: make changeable
+        self.num_display_vals = config['cepstrum']['num_display']
         
         # End init
         self.show()
@@ -89,7 +92,7 @@ class CepstrumWidget(QWidget):
             if calc_vol < len(data)*100:
                 self.pitch_data = np.append(self.pitch_data, self.pitch_data[-1])
             else:
-                self.pitch_data = np.append(self.pitch_data, 44100/np.argmax(self.cepstrum_data))
+                self.pitch_data = np.append(self.pitch_data, self.sample_freq/np.argmax(self.cepstrum_data))
             self.pitch_line.setData(range(min(self.pitch_data.shape[0], self.num_display_vals)), 
                                 self.pitch_data[-self.num_display_vals:])
 
@@ -118,16 +121,16 @@ class CepstrumWidget(QWidget):
         
         # Update pitch detection plot
         calc_vol = np.sum(np.abs(data))
-        if calc_vol < len(data)*1000:
+        if calc_vol < len(data)*1000: # TODO: Choose this threshold more rigerously
             self.pitch_data = np.append(self.pitch_data, self.pitch_data[-1])
         else:
-            self.pitch_data = np.append(self.pitch_data, 44100/np.argmax(self.cepstrum_data))
+            self.pitch_data = np.append(self.pitch_data, self.sample_freq/np.argmax(self.cepstrum_data))
         self.pitch_line.setData(range(min(self.pitch_data.shape[0], self.num_display_vals)), 
                             self.pitch_data[-self.num_display_vals:])
 
         QtGui.QApplication.processEvents() 
 
-# Debugging function
+# Debugging script
 if __name__ == "__main__":
    # Needed because pyQT remains in spyder namespace
     app = QtCore.QCoreApplication.instance()
