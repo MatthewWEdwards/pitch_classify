@@ -3,7 +3,7 @@ sample_frequency: 44100
 
 plots:
     freq_min: 50
-    freq_max: 1000
+    freq_max: 500
 
 yin:
     threshold: 0.05

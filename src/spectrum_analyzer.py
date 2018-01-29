@@ -118,9 +118,9 @@ class SpectrumWidget(QWidget, Observable):
         while data:  
             
             self.playaudiocond.acquire()
-            if not self.playaudioflag:
-                self.playaudiocond.wait()
-                
+            while not self.playaudioflag:
+                QtGui.QApplication.processEvents() 
+
             self.update_observers(data = data)
             disp_data = displayer.graph_data
             # Difference here done for efficiency reasons (RE: Pandas)

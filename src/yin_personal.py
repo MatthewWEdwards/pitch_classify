@@ -25,6 +25,7 @@ class YinWidget(QWidget):
         self.read_length = config['read_length']
         self.freq_range = [config['plots']['freq_min'], config['plots']['freq_max']]
         self.sample_freq = config['sample_frequency']
+        self.threshold = config['yin']['threshold']
         
         # Plots
         self.yin_plot = pg.PlotWidget()
@@ -68,16 +69,15 @@ class YinWidget(QWidget):
     
         # Find dip candidates (step 4)
         period_candiates = {}
-        threshold = 0.05
         window_length = self.read_length/2
         lag_max = self.read_length/2
-        for lag in range(50, 800):        
+        for lag in range(50, 400):        
             rolled_data = np.array(data[lag:int(np.ceil(lag + lag_max))]).astype('int64')
             base_data = np.array(data[0:self.read_length/2]).astype('int64')    
             periodic_power = (.25/window_length)*(np.sum(np.square(rolled_data + base_data)))
             aperiodic_power = (.25/window_length)*(np.sum(np.square(rolled_data - base_data)))
             aperiodic_power_ratio = aperiodic_power / (periodic_power + aperiodic_power)
-            if aperiodic_power_ratio < threshold:
+            if aperiodic_power_ratio < self.threshold:
                 period_candiates.update({lag: aperiodic_power_ratio})
                 
         # Choose between value from step 3 and value from step 4
