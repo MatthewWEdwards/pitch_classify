@@ -47,9 +47,7 @@ class CepstrumWidget(QWidget):
         self.pitch_data = np.array([0])
         self.cepstrum_data = np.array([0])
         self.num_display_vals = config['cepstrum']['num_display']
-        
-        # End init
-        self.show()
+
 
     def cepstrum(self, data):
         hann = np.hanning(len(data))
@@ -139,7 +137,8 @@ if __name__ == "__main__":
     app.exec_()
     
     c_w = CepstrumWidget()
-    c_w.detect_pitch(file_path = ".\\singing_samples\\opera_tenor.wav",
+    c_w.show()
+    c_w.detect_pitch(file_path = "C:\\Users\\Matthew Edwards\\Desktop\\MedleyDB\\Audio\\AimeeNorwich_Child\\AimeeNorwich_Child_MIX.wav",
         play_sound = True)
         
     c_w.close()
