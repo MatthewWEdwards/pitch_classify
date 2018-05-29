@@ -21,7 +21,7 @@ class SpectrumWidget(QWidget, Observable):
     decibles = False
     freq_range = [config['plots']['freq_min'], config['plots']['freq_max']]
     file_name = ""
-    read_length = config['read_length'] # TODO: Make customizable
+    read_length = config['read_length']
     play_audio_flag = False
     quit_flag = False
 
@@ -116,23 +116,31 @@ class SpectrumWidget(QWidget, Observable):
                 return
 
             self.update_observers(data = data)
-            disp_data = displayer.graph_data        
             
+            #########TODO: This section of code has performance issues
+            freq_data = displayer.freq_array
+            mag_data = displayer.mag_array
             if self.decibles:
-                display_data = 20*np.log2(1+disp_data['magnitude'].as_matrix())
+                display_data = 20*np.log2(1+mag_data)
             else:
-                display_data = disp_data['magnitude'].as_matrix()
-            self.line.setData(disp_data['freq'].as_matrix(), display_data)
-
+                display_data = mag_data
+            self.line.setData(freq_data, display_data)
+            #########
+            
             QtGui.QApplication.processEvents() 
             data = audio_data.readframes(self.read_length)  
             data_list = list(np.fromstring(data, dtype=np.int16))
+            
             self.signal.emit(data_list, False)
+            
             
         self.unregister(sound_player)
         self.unregister(displayer)
         p.close(stream)
         self.playing_flag = False
+        
+    def clear(self):
+        self.signal.emit([], True)
         
     """
     Button functions
@@ -147,16 +155,15 @@ class SpectrumWidget(QWidget, Observable):
         else:
             self.plot.setXRange(self.freq_range[0], self.freq_range[1])
         
-        # Idk why this is necessary here but it is
         if self.decibles:
-            self.plot.setYRange(0,340)
+            self.plot.setYRange(0,500)
         else:
             self.plot.setYRange(0, 10**6)
             
     def decible_click(self):
         self.decibles = not self.decibles
         if self.decibles:
-            self.plot.setYRange(0,340) # TODO: make this actually based on data
+            self.plot.setYRange(0,500) # TODO: make this actually based on data
         else:
             self.plot.setYRange(0, 10**6)
 
@@ -169,6 +176,7 @@ class SpectrumWidget(QWidget, Observable):
         
     def play_click(self):
         if not self.playing_flag:
+            self.clear()
             self.start_audio()
     
     def pause_click(self):
@@ -180,14 +188,13 @@ class SpectrumWidget(QWidget, Observable):
     """
     End button functions
     """
-        
+
         
 if __name__ == "__main__":
    # Needed because pyQT remains in spyder namespace
     app = QtCore.QCoreApplication.instance()
     if app is None:
         app = QtWidgets.QApplication(sys.argv)
-        
         
     app.exec_()
     s_w = SpectrumWidget()

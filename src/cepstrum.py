@@ -81,7 +81,7 @@ class CepstrumWidget(QWidget):
             
             # Update cepstrum plot
             self.cepstrum_data = self.cepstrum(data)     
-            self.cepstrum_data = self.cepstrum_data[0:self.read_length] # Only need one side of the symetrical spectrum
+            self.cepstrum_data = self.cepstrum_data[0:self.read_length] 
             self.cepstrum_data[:100] = 0 # assume freq < 441
             self.cepstrum_line.setData(range(self.cepstrum_data.shape[0]), self.cepstrum_data)
             
@@ -90,9 +90,11 @@ class CepstrumWidget(QWidget):
             if calc_vol < len(data)*100:
                 self.pitch_data = np.append(self.pitch_data, self.pitch_data[-1])
             else:
-                self.pitch_data = np.append(self.pitch_data, self.sample_freq/np.argmax(self.cepstrum_data))
-            self.pitch_line.setData(range(min(self.pitch_data.shape[0], self.num_display_vals)), 
-                                self.pitch_data[-self.num_display_vals:])
+                new_pitch = self.sample_freq/np.argmax(self.cepstrum_data)
+                self.pitch_data = np.append(self.pitch_data, new_pitch)
+            
+            x_axis_data = range(min(self.pitch_data.shape[0], self.num_display_vals))
+            self.pitch_line.setData(x_axis_data, self.pitch_data[-self.num_display_vals:])
 
             # update plots, read data for next loop
             QtGui.QApplication.processEvents() 
@@ -113,18 +115,19 @@ class CepstrumWidget(QWidget):
         
         # Update cepstrum plot
         self.cepstrum_data = self.cepstrum(data)     
-        self.cepstrum_data = self.cepstrum_data[0:self.read_length] # Only need one side of the symetrical spectrum
+        self.cepstrum_data = self.cepstrum_data[0:self.read_length]
         self.cepstrum_data[:100] = 0 # assume freq < 441
         self.cepstrum_line.setData(range(self.cepstrum_data.shape[0]), self.cepstrum_data)
         
         # Update pitch detection plot
         calc_vol = np.sum(np.abs(data))
-        if calc_vol < len(data)*1000: # TODO: Choose this threshold more rigerously
+        if calc_vol < len(data)*1000: # TODO: Choose this threshold more rigorously
             self.pitch_data = np.append(self.pitch_data, self.pitch_data[-1])
         else:
-            self.pitch_data = np.append(self.pitch_data, self.sample_freq/np.argmax(self.cepstrum_data))
-        self.pitch_line.setData(range(min(self.pitch_data.shape[0], self.num_display_vals)), 
-                            self.pitch_data[-self.num_display_vals:])
+            new_pitch = self.sample_freq/np.argmax(self.cepstrum_data)
+            self.pitch_data = np.append(self.pitch_data, new_pitch)
+        x_axis_data = range(min(self.pitch_data.shape[0], self.num_display_vals))
+        self.pitch_line.setData(x_axis_data, self.pitch_data[-self.num_display_vals:])
 
         QtGui.QApplication.processEvents() 
 

@@ -5,13 +5,14 @@ import sys
 from spectrum_analyzer import SpectrumWidget
 from cepstrum import CepstrumWidget
 from yin_personal import YinWidget
+from note_widget import NoteWidget
 
 class MultiWidget(QWidget):
 
     exist = True
     
     def __init__(self, spec = SpectrumWidget(), ceps = CepstrumWidget(),
-                 yin = YinWidget()):
+                 yin = YinWidget(), note = NoteWidget()):
         super(QWidget, self).__init__()
         self.layout = QtGui.QGridLayout()
         self.setLayout(self.layout)
@@ -19,16 +20,19 @@ class MultiWidget(QWidget):
         self.spec = spec
         self.ceps = ceps
         self.yin = yin
+        self.note = note
         
         spec.signal.connect(ceps.update_trigger)
         spec.signal.connect(yin.update_trigger)
+        yin.signal.connect(note.update_trigger)
 
         self.layout.addWidget(self.spec, 0, 0)
-        self.layout.addWidget(self.ceps, 1, 0)
+#        self.layout.addWidget(self.ceps, 1, 0)
         self.layout.addWidget(self.yin, 2, 0)       
+        self.layout.addWidget(self.note, 0, 1)
         
         self.quitbtn = QPushButton('Quit')
-        self.layout.addWidget(self.quitbtn, 3, 0)
+        self.layout.addWidget(self.quitbtn, 4, 0)
         self.quitbtn.clicked.connect(self.quit)
 
     def quit(self):

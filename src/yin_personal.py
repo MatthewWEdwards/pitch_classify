@@ -3,7 +3,8 @@ import wave
 import pyaudio
 import pyqtgraph as pg
 import yaml
-from PyQt5 import QtGui
+import matplotlib.pyplot as plt
+from PyQt5 import QtGui, QtCore
 from PyQt5.QtWidgets import QWidget
 
 from observable import Observable
@@ -11,8 +12,19 @@ from observers import SoundObserver
 
 from noconflict import classmaker
 
-class YinWidget(QWidget):
+class YinWidget(QWidget, Observable):
+    
+    signal = QtCore.pyqtSignal(int, bool)
     __metaclass__ = classmaker()
+    
+    peak_power = 0
+    average_power = 0
+    power_samples = 0
+    current_power = 0        
+    power_sensitivity = .1
+    # Init Holders
+    yin_data = np.array([0])
+    num_display_vals = 300 # TODO: make changeable
 
     def __init__(self):
         super(QWidget, self).__init__()
@@ -34,10 +46,6 @@ class YinWidget(QWidget):
         self.yin_plot.setMouseEnabled(False, False)
         self.yin_plot.setYRange(0, 500)
         
-        # Init Holders
-        self.yin_data = np.array([0])
-        self.num_display_vals = 300 # TODO: make changeable
-        
         # End init
         self.show()
     
@@ -46,7 +54,8 @@ class YinWidget(QWidget):
     """
     def update_trigger(self, data, clear_flag):
         if clear_flag:
-            self.pitch_data = np.array([0])
+            self.signal.emit([], True)
+            self.yin_data = np.array([0])
             return
         
         if not data:
@@ -54,7 +63,7 @@ class YinWidget(QWidget):
         
         data = np.array(data)
         
-        ## YIN algorithm
+        ### YIN algorithm ###
         
         # autocorrelation with differencing (step 3)
         lag_max = self.read_length/2
@@ -88,23 +97,42 @@ class YinWidget(QWidget):
             sorted_candidates = sorted(period_candiates.iteritems(), key=lambda(k,v): (v,k))
             pitch_d = self.sample_freq/sorted_candidates[0][0]
             
-        ## End YIN algorithm
-                        
-        # Update plot
-        calc_vol = np.sum(np.abs(data))
-        if calc_vol < len(data)*1000:
-            self.yin_data = np.append(self.yin_data, self.yin_data[-1])
-        else:
-            self.yin_data = np.append(self.yin_data, pitch_d)
+        ### End YIN algorithm ###
+        if self.update_power(data) < self.power_sensitivity*self.average_power:
+            pitch_d = self.yin_data[-1]
+
+        self.signal.emit(pitch_d, False)
+        self.yin_data = np.append(self.yin_data, pitch_d)
+        
         self.yin_line.setData(range(min(self.yin_data.shape[0], self.num_display_vals)), 
                             self.yin_data[-self.num_display_vals:])
 
         QtGui.QApplication.processEvents() 
 
+    
+    def update_power(self, x):
+        power = self.calculate_power(x)
+    
+        if power > self.peak_power:
+            self.peak_power = power
+            
+        self.power_samples = self.power_samples + 1
+        self.average_power = self.average_power + (power / self.power_samples)
+        
+        print power
+        print self.peak_power
+        print self.average_power
+        print "========================"
+        
+        return power
+    
+    def calculate_power(self, x):
+        x = x.astype(long)
+        return np.dot(x,x)
 
 if __name__ == '__main__':
     #%% Open sound file, prepare arrays
-    sound_file = ".\\singing_samples\\rehearsal_music.wav" # 'a' note
+    sound_file = "..\\singing_samples\\rehearsal_music.wav" # 'a' note
     audio_data = wave.open(sound_file, 'rb')
     
     p = pyaudio.PyAudio()  

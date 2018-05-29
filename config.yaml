@@ -1,9 +1,9 @@
-read_length: 2048
+read_length: 4096
 sample_frequency: 44100
 
 plots:
     freq_min: 50
-    freq_max: 500
+    freq_max: 1000
 
 yin:
     threshold: 0.05

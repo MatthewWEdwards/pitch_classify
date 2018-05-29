@@ -6,6 +6,9 @@ from observer import Observer
 
 class DisplayObserver(Observer):
     
+    freq_array = 0
+    mag_array = 0
+        
     """
     stft_length: Length of the shoft-time fourier transform to use
     sample_freq: Sampling rate of the audio source in hz
@@ -27,7 +30,7 @@ class DisplayObserver(Observer):
             return
         
         input_data = np.fromstring(data, dtype=np.int16)        
-        frequencies, data = self.transform(input_data)
+        freqs, data = self.transform(input_data)
         
         if data.shape[0] < 1:
             return
@@ -36,12 +39,9 @@ class DisplayObserver(Observer):
         for channel in range(data.shape[1]):
             channel_sum = channel_sum + data[:,channel]/data.shape[1]
             
-        graph_data = pd.DataFrame()
-        graph_data['freq'] = pd.Series(frequencies)
-        graph_data['magnitude'] = pd.Series(channel_sum)
-        graph_data = graph_data[graph_data['freq'] < self.freq_range[1]]
-        graph_data = graph_data[graph_data['freq'] > self.freq_range[0]]
-        self.graph_data = graph_data
+        freqs = np.array(freqs)
+        self.freq_array = freqs[np.where((freqs < self.freq_range[1]) & (freqs >= self.freq_range[0]))]
+        self.mag_array = channel_sum[np.where((freqs < self.freq_range[1]) & (freqs >= self.freq_range[0]))]
     
     def transform(self, input_data):
         if self.hann:
