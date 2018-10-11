@@ -1,6 +1,6 @@
 # SOURCE:   http://code.activestate.com/recipes/204197/ 
 
-import inspect, types, __builtin__
+import inspect, types
 
  ############## preliminary: two utility functions #####################
 

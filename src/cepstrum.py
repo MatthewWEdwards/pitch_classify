@@ -137,7 +137,7 @@ if __name__ == "__main__":
     app = QtCore.QCoreApplication.instance()
     if app is None:
         app = QtWidgets.QApplication(sys.argv)
-    app.exec_()
+    app.exec()
     
     c_w = CepstrumWidget()
     c_w.show()

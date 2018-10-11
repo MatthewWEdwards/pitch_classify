@@ -94,7 +94,7 @@ class YinWidget(QWidget, Observable):
             d[:50] = np.inf
             pitch_d = self.sample_freq/np.argmin(d)
         else:
-            sorted_candidates = sorted(period_candiates.iteritems(), key=lambda(k,v): (v,k))
+            sorted_candidates = sorted(period_candiates.iteritems(), key=lambda k,v : v)
             pitch_d = self.sample_freq/sorted_candidates[0][0]
             
         ### End YIN algorithm ###
@@ -119,10 +119,10 @@ class YinWidget(QWidget, Observable):
         self.power_samples = self.power_samples + 1
         self.average_power = self.average_power + (power / self.power_samples)
         
-        print power
-        print self.peak_power
-        print self.average_power
-        print "========================"
+        print(power)
+        print(self.peak_power)
+        print(self.average_power)
+        print("========================")
         
         return power
     
@@ -132,19 +132,24 @@ class YinWidget(QWidget, Observable):
 
 if __name__ == '__main__':
     #%% Open sound file, prepare arrays
-    sound_file = "..\\singing_samples\\rehearsal_music.wav" # 'a' note
+    sound_file = "../39216__jobro__piano-ff-088.wav" # 'a' note
     audio_data = wave.open(sound_file, 'rb')
     
     p = pyaudio.PyAudio()  
-    stream = p.open(format = p.get_format_from_width(audio_data.getsampwidth()),  
-                    channels = audio_data.getnchannels(),  
-                    rate = audio_data.getframerate(),  
-                    output = True)     
+    for i in range(0, p.get_device_count()):
+            print("name: " + p.get_device_info_by_index(i)["name"])
+            print("index: " + p.get_device_info_by_index(i)["index"])
+            print("\n")
+    #stream = p.open(format = p.get_format_from_width(audio_data.getsampwidth()),  
+    #                channels = audio_data.getnchannels(),  
+    #                rate = audio_data.getframerate(),  
+    #                output_device_index = 1,
+    #                output = True)     
             
-    read_length = 2**10
+    read_length = 2**11
     observable = Observable()
-    sound_player = SoundObserver(stream)
-    observable.register(sound_player)
+    #sound_player = SoundObserver(stream)
+    #observable.register(sound_player)
         
     data = audio_data.readframes(read_length)  
     
@@ -153,11 +158,11 @@ if __name__ == '__main__':
     
     #%% Difference function
     def difference_val(data, read_length):
-        lag_max = read_length/2
+        lag_max = int(read_length/2)
         d = np.zeros(lag_max)
         for lag in range(0, lag_max):
             rolled_data = data[lag:int(np.ceil(lag + lag_max))]
-            base_data = data[0:read_length/2]
+            base_data = data[0:lag_max]
             if len(rolled_data) != len(base_data):
                 break 
             d[lag] = np.sum(np.abs(rolled_data - base_data))
@@ -177,7 +182,7 @@ if __name__ == '__main__':
     
         d[:50] = np.inf
         pitch_d = 44100/np.argmin(d)
-        print "difference: " + str(pitch_d)    
+        print("difference: " + str(pitch_d))
     
         d_array = np.append(d_array, pitch_d)
         data = audio_data.readframes(read_length)
