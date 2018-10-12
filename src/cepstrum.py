@@ -24,7 +24,7 @@ class CepstrumWidget(QWidget):
         self.setLayout(self.layout)
         
         # Defaults              
-        config = yaml.load(file('..\\config.yaml', 'rb').read())
+        config = yaml.load(open('../config.yaml', 'r').read())
         self.read_length = config['read_length']
         self.freq_range = [config['plots']['freq_min'], config['plots']['freq_max']]
         self.sample_freq = config['sample_frequency']
@@ -66,12 +66,12 @@ class CepstrumWidget(QWidget):
         observable = Observable()
         if play_sound: 
             p = pyaudio.PyAudio()  
-            stream = p.open(format = p.get_format_from_width(audio_data.getsampwidth()),  
-                            channels = audio_data.getnchannels(),  
-                            rate = audio_data.getframerate(),  
-                            output = True)
-            sound_player = SoundObserver(stream)
-            observable.register(sound_player)
+            #stream = p.open(format = p.get_format_from_width(audio_data.getsampwidth()),  
+            #                channels = audio_data.getnchannels(),  
+            #                rate = audio_data.getframerate(),  
+            #                output = True)
+            #sound_player = SoundObserver(stream)
+            #observable.register(sound_player)
         
         data = audio_data.readframes(self.read_length)  
         self.pitch_data = np.array([0])
@@ -137,12 +137,11 @@ if __name__ == "__main__":
     app = QtCore.QCoreApplication.instance()
     if app is None:
         app = QtWidgets.QApplication(sys.argv)
-    app.exec()
     
     c_w = CepstrumWidget()
     c_w.show()
-    c_w.detect_pitch(file_path = "C:\\Users\\Matthew Edwards\\Desktop\\MedleyDB\\Audio\\AimeeNorwich_Child\\AimeeNorwich_Child_MIX.wav",
-        play_sound = True)
+    c_w.detect_pitch(file_path = "../singing_samples/a_yeah_yeah.wav", play_sound = True)
         
     c_w.close()
+    sys.exit(app.exec())
         

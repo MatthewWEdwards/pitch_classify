@@ -33,7 +33,7 @@ class YinWidget(QWidget, Observable):
         self.setLayout(self.layout)
         
         # Config Values              
-        config = yaml.load(file('..\\config.yaml', 'rb').read())
+        config = yaml.load(open('../config.yaml', 'rb').read())
         self.read_length = config['read_length']
         self.freq_range = [config['plots']['freq_min'], config['plots']['freq_max']]
         self.sample_freq = config['sample_frequency']

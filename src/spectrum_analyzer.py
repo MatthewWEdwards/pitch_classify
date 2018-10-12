@@ -16,7 +16,7 @@ class SpectrumWidget(QWidget, Observable):
     signal = QtCore.pyqtSignal(list, bool)
     playing_flag = False
     
-    config = yaml.load(file('../config.yaml', 'rb').read())
+    config = yaml.load(open('../config.yaml', 'rb').read())
     logscale = False
     decibles = False
     freq_range = [config['plots']['freq_min'], config['plots']['freq_max']]
@@ -196,7 +196,6 @@ if __name__ == "__main__":
     if app is None:
         app = QtWidgets.QApplication(sys.argv)
         
-    app.exec_()
     s_w = SpectrumWidget()
     s_w.show()
     while True:
