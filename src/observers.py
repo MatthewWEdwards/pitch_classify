@@ -1,5 +1,8 @@
 import pandas as pd
+import sounddevice as sd
+import soundfile as sf
 import numpy as np
+from threading import Thread
 from scipy.signal import spectrogram
 
 from observer import Observer
@@ -26,7 +29,7 @@ class DisplayObserver(Observer):
     def update(self, *args, **kwargs):
         # Transform data
         data = kwargs.get('data', False)
-        if not data:
+        if data is None:
             return
         
         input_data = np.fromstring(data, dtype=np.int16)        
@@ -57,20 +60,19 @@ class DisplayObserver(Observer):
 class SoundObserver(Observer):
         def __init__(self, stream):
             self.stream = stream
+            stream.start()
+            self.status = False
         
         def update(self, *args, **kwargs):
+            Thread(target=self.handler, args=(self, *args), kwargs=kwargs).start()
+
+        def handler(self, *args, **kwargs):
             data = kwargs.get('data', False)
-            if not data:
+            if data is None:
                 return
+            data=np.fromstring(data, dtype=np.float32)
             self.stream.write(data)
-    
-    
-    
-    
-    
-    
-    
-    
-    
+            self.status = sd.wait()
+            
     
     

@@ -28,12 +28,12 @@ class MultiWidget(QWidget):
         
         spec.signal.connect(ceps.update_trigger)
         spec.signal.connect(yin.update_trigger)
-        yin.signal.connect(note.update_trigger)
+        #yin.signal.connect(note.update_trigger)
 
         self.layout.addWidget(spec, 0, 0)
 #        self.layout.addWidget(self.ceps, 1, 0)
         self.layout.addWidget(yin, 2, 0)       
-        self.layout.addWidget(note, 0, 1)
+        #self.layout.addWidget(note, 0, 1)
         
         self.quitbtn = QPushButton('Quit')
         self.layout.addWidget(self.quitbtn, 4, 0)

@@ -1,8 +1,11 @@
 import numpy as np
 import wave
 import pyaudio  
+import sounddevice as sd
+import soundfile as sf
 import yaml
 import pyqtgraph as pg
+import time
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import QWidget, QPushButton, QFileDialog
 from PyQt5.QtWidgets import QLineEdit
@@ -80,7 +83,7 @@ class SpectrumWidget(QWidget, Observable):
         sound_file = self.file_name
         if sound_file == "":
             return
-        audio_data = wave.open(sound_file, 'rb')
+        audio_data = sf.blocks(sound_file, dtype='float32', blocksize=self.read_length)
         
         self.play_audio_flag = True
         self.play_audio(audio_data)
@@ -93,21 +96,17 @@ class SpectrumWidget(QWidget, Observable):
     def play_audio(self, audio_data):
         self.playing_flag = True
         self.update_observers(clear_flag = True) # Clear plots
-        p = pyaudio.PyAudio()  
-        stream = p.open(format = p.get_format_from_width(audio_data.getsampwidth()),  
-                        channels = audio_data.getnchannels(),  
-                        rate = audio_data.getframerate(),  
-                        output = True)  
-        
-        # Set up Observer-Listeners
-        sound_player = SoundObserver(stream)
+        stream = sd.OutputStream(blocksize=self.read_length, device=3, channels=2, dtype='float32')
+        stream.start()
+
+        ## Set up Observer-Listeners
+        #sound_player = SoundObserver(stream)
         displayer = DisplayObserver(stft_length = self.read_length, 
                         freq_range=self.freq_range, hann=True)
-        self.register(sound_player)
+        #self.register(sound_player)
         self.register(displayer)
         
-        data = audio_data.readframes(self.read_length)      
-        while data:  
+        for block in audio_data:
             # If paused
             while not self.play_audio_flag:
                 QtGui.QApplication.processEvents() 
@@ -115,7 +114,7 @@ class SpectrumWidget(QWidget, Observable):
             if self.quit_flag:
                 return
 
-            self.update_observers(data = data)
+            self.update_observers(data = block)
             
             #########TODO: This section of code has performance issues
             freq_data = displayer.freq_array
@@ -127,16 +126,15 @@ class SpectrumWidget(QWidget, Observable):
             self.line.setData(freq_data, display_data)
             #########
             
+            stream.write(block)
+            sd.wait()
+
             QtGui.QApplication.processEvents() 
-            data = audio_data.readframes(self.read_length)  
-            data_list = list(np.fromstring(data, dtype=np.int16))
+            self.signal.emit(block.tolist(), False)
             
-            self.signal.emit(data_list, False)
-            
-            
-        self.unregister(sound_player)
+        #self.unregister(sound_player)
         self.unregister(displayer)
-        p.close(stream)
+
         self.playing_flag = False
         
     def clear(self):
