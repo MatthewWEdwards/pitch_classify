@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton
 import sys
 
 from spectrum_analyzer import SpectrumWidget
-from cepstrum import CepstrumWidget
+#from cepstrum import CepstrumWidget
 from yin_personal import YinWidget
 from note_widget import NoteWidget
 
@@ -19,14 +19,14 @@ class MultiWidget(QWidget):
         
         if spec is None:
             spec = SpectrumWidget()
-        if ceps is None:
-            ceps = CepstrumWidget()
+#        if ceps is None:
+#            ceps = CepstrumWidget()
         if yin is None:
             yin = YinWidget()
         if note is None:
             note = NoteWidget()
         
-        spec.signal.connect(ceps.update_trigger)
+        #spec.signal.connect(ceps.update_trigger)
         spec.signal.connect(yin.update_trigger)
         #yin.signal.connect(note.update_trigger)
 

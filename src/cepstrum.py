@@ -2,7 +2,6 @@ import numpy as np
 from scipy.fftpack import fft, ifft
 import wave
 import yaml
-import pyaudio
 import pyqtgraph as pg
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import QWidget
@@ -65,7 +64,7 @@ class CepstrumWidget(QWidget):
         
         observable = Observable()
         if play_sound: 
-            p = pyaudio.PyAudio()  
+            #p = pyaudio.PyAudio()  
             #stream = p.open(format = p.get_format_from_width(audio_data.getsampwidth()),  
             #                channels = audio_data.getnchannels(),  
             #                rate = audio_data.getframerate(),  

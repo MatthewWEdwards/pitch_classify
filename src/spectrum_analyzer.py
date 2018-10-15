@@ -1,6 +1,5 @@
 import numpy as np
 import wave
-import pyaudio  
 import sounddevice as sd
 import soundfile as sf
 import yaml
@@ -16,7 +15,7 @@ from observers import DisplayObserver, SoundObserver
 
 class SpectrumWidget(QWidget, Observable):
     
-    signal = QtCore.pyqtSignal(list, bool)
+    signal = QtCore.pyqtSignal(list, bool, int)
     playing_flag = False
     
     config = yaml.load(open('../config.yaml', 'rb').read())
@@ -27,6 +26,7 @@ class SpectrumWidget(QWidget, Observable):
     read_length = config['read_length']
     play_audio_flag = False
     quit_flag = False
+    sample_rate = 44100
 
     def __init__(self):
         super(QWidget, self).__init__()
@@ -84,6 +84,8 @@ class SpectrumWidget(QWidget, Observable):
         if sound_file == "":
             return
         audio_data = sf.blocks(sound_file, dtype='float32', blocksize=self.read_length)
+        _, self.sample_rate = sf.read(sound_file)
+        print(self.sample_rate)
         
         self.play_audio_flag = True
         self.play_audio(audio_data)
@@ -96,13 +98,13 @@ class SpectrumWidget(QWidget, Observable):
     def play_audio(self, audio_data):
         self.playing_flag = True
         self.update_observers(clear_flag = True) # Clear plots
-        stream = sd.OutputStream(blocksize=self.read_length, device=3, channels=2, dtype='float32')
+        stream = sd.OutputStream(blocksize=self.read_length, channels=2, dtype='float32', samplerate=self.sample_rate)
         stream.start()
 
         ## Set up Observer-Listeners
         #sound_player = SoundObserver(stream)
         displayer = DisplayObserver(stft_length = self.read_length, 
-                        freq_range=self.freq_range, hann=True)
+                        freq_range=self.freq_range, hann=True, sample_freq=self.sample_rate)
         #self.register(sound_player)
         self.register(displayer)
         
@@ -126,11 +128,13 @@ class SpectrumWidget(QWidget, Observable):
             self.line.setData(freq_data, display_data)
             #########
             
+            while not sd.wait() is None:
+                pass
+            
             stream.write(block)
-            sd.wait()
 
             QtGui.QApplication.processEvents() 
-            self.signal.emit(block.tolist(), False)
+            self.signal.emit(block.tolist(), False, self.sample_rate)
             
         #self.unregister(sound_player)
         self.unregister(displayer)
@@ -138,7 +142,7 @@ class SpectrumWidget(QWidget, Observable):
         self.playing_flag = False
         
     def clear(self):
-        self.signal.emit([], True)
+        self.signal.emit([], True, 0)
         
     """
     Button functions

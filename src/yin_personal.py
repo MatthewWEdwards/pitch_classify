@@ -1,6 +1,5 @@
 import numpy as np
 import wave
-import pyaudio
 import pyqtgraph as pg
 import yaml
 import matplotlib.pyplot as plt
@@ -26,7 +25,7 @@ class YinWidget(QWidget, Observable):
     yin_data = np.array([0])
     num_display_vals = 300 # TODO: make changeable
 
-    def __init__(self):
+    def __init__(self, sample_freq=None):
         super(QWidget, self).__init__()
         
         self.layout = QtGui.QGridLayout()
@@ -36,7 +35,8 @@ class YinWidget(QWidget, Observable):
         config = yaml.load(open('../config.yaml', 'rb').read())
         self.read_length = config['read_length']
         self.freq_range = [config['plots']['freq_min'], config['plots']['freq_max']]
-        self.sample_freq = config['sample_frequency']
+        if sample_freq is None:
+            self.sample_freq = config['sample_frequency']
         self.threshold = config['yin']['threshold']
         
         # Plots
@@ -52,7 +52,9 @@ class YinWidget(QWidget, Observable):
     """
     Sound is not played by this function
     """
-    def update_trigger(self, data, clear_flag):
+    def update_trigger(self, data, clear_flag, sample_freq):
+        if not sample_freq is 0:
+            self.sample_freq = sample_freq
         if clear_flag:
             self.signal.emit([], True)
             self.yin_data = np.array([0])
