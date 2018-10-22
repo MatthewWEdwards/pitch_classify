@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 # ABC - Abstract Base Class
  
-class Observer(object):
+class Observer:
     __metaclass__ = ABCMeta
  
     @abstractmethod

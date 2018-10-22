@@ -63,15 +63,7 @@ class CepstrumWidget(QWidget):
         audio_data = wave.open(sound_file, 'rb')
         
         observable = Observable()
-        if play_sound: 
-            #p = pyaudio.PyAudio()  
-            #stream = p.open(format = p.get_format_from_width(audio_data.getsampwidth()),  
-            #                channels = audio_data.getnchannels(),  
-            #                rate = audio_data.getframerate(),  
-            #                output = True)
-            #sound_player = SoundObserver(stream)
-            #observable.register(sound_player)
-        
+
         data = audio_data.readframes(self.read_length)  
         self.pitch_data = np.array([0])
         while data:  

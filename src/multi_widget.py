@@ -4,7 +4,7 @@ import sys
 
 from spectrum_analyzer import SpectrumWidget
 #from cepstrum import CepstrumWidget
-from yin_personal import YinWidget
+from pitch_widget import PitchWidget
 from note_widget import NoteWidget
 from system_widget import SystemWidget
 from audio_singleton import AudioSingleton
@@ -13,8 +13,7 @@ class MultiWidget(QWidget):
 
     exist = True
     
-    def __init__(self, spec = None, ceps = None,
-                 yin = None, note = None, sys_w = None):
+    def __init__(self, spec = None, pitch = None, note = None, sys_w = None):
         super(QWidget, self).__init__()
         self.layout = QtGui.QGridLayout()
         self.setLayout(self.layout)
@@ -23,20 +22,14 @@ class MultiWidget(QWidget):
             
         if spec is None:
             spec = SpectrumWidget()
-#        if ceps is None:
-#            ceps = CepstrumWidget()
-        if yin is None:
-            yin = YinWidget()
+        if pitch is None:
+            pitch = PitchWidget()
 #        if note is None:
 #            note = NoteWidget()
         if sys_w is None:
-            sys_w = SystemWidget([spec, yin], quit=False)
+            sys_w = SystemWidget([spec, pitch], quit=False)
 
-        self.widgets = [sys_w, spec, yin]
-        
-        #spec.signal.connect(ceps.update_trigger)
-        #spec.signal.connect(yin.update_trigger)
-        #yin.signal.connect(note.update_trigger)
+        self.widgets = [sys_w, spec, pitch]
 
         for widget in range(len(self.widgets)):
             self.layout.addWidget(self.widgets[widget], widget, 0)

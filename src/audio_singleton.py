@@ -1,7 +1,6 @@
 import numpy as np
 import soundfile as sf
 
-
 class Singleton:
     """Alex Martelli implementation of Singleton (Borg)
     http://python-3-patterns-idioms-test.readthedocs.io/en/latest/Singleton.html"""
