@@ -6,13 +6,14 @@ from spectrum_analyzer import SpectrumWidget
 #from cepstrum import CepstrumWidget
 from yin_personal import YinWidget
 from note_widget import NoteWidget
+from system_widget import SystemWidget
 
 class MultiWidget(QWidget):
 
     exist = True
     
     def __init__(self, spec = None, ceps = None,
-                 yin = None, note = None):
+                 yin = None, note = None, sys_w = None):
         super(QWidget, self).__init__()
         self.layout = QtGui.QGridLayout()
         self.setLayout(self.layout)
@@ -23,15 +24,18 @@ class MultiWidget(QWidget):
 #            ceps = CepstrumWidget()
         if yin is None:
             yin = YinWidget()
-        if note is None:
-            note = NoteWidget()
+#        if note is None:
+#            note = NoteWidget()
+        if sys_w is None:
+            sys_w = SystemWidget([spec, yin], quit=False)
         
         #spec.signal.connect(ceps.update_trigger)
-        spec.signal.connect(yin.update_trigger)
+        #spec.signal.connect(yin.update_trigger)
         #yin.signal.connect(note.update_trigger)
 
-        self.layout.addWidget(spec, 0, 0)
-#        self.layout.addWidget(self.ceps, 1, 0)
+        self.layout.addWidget(sys_w, 0, 0)
+        self.layout.addWidget(spec, 1, 0)
+        #self.layout.addWidget(self.ceps, 1, 0)
         self.layout.addWidget(yin, 2, 0)       
         #self.layout.addWidget(note, 0, 1)
         
@@ -40,7 +44,7 @@ class MultiWidget(QWidget):
         self.quitbtn.clicked.connect(self.quit)
 
     def quit(self):
-        spec.quit_audio()
+        sys_w.quit()
         self.close()
         self.exist = False
         

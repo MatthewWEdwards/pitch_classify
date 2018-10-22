@@ -5,15 +5,14 @@ import yaml
 import matplotlib.pyplot as plt
 from PyQt5 import QtGui, QtCore
 from PyQt5.QtWidgets import QWidget
+import threading
+import queue
 
-from observable import Observable
-from observers import SoundObserver
+from observer import Observer
 
 from noconflict import classmaker
 
-class YinWidget(QWidget, Observable):
-    
-    signal = QtCore.pyqtSignal(int, bool)
+class YinWidget(QWidget, Observer):
     __metaclass__ = classmaker()
     
     peak_power = 0
@@ -45,6 +44,11 @@ class YinWidget(QWidget, Observable):
         self.yin_line = self.yin_plot.plot(pen='y')
         self.yin_plot.setMouseEnabled(False, False)
         self.yin_plot.setYRange(0, 500)
+
+        # Threading
+        self.thread_queue = queue.Queue()
+        yin_thread = threading.Thread(target = self.run)
+        yin_thread.start()
         
         # End init
         self.show()
@@ -52,28 +56,34 @@ class YinWidget(QWidget, Observable):
     """
     Sound is not played by this function
     """
-    def update_trigger(self, data, clear_flag, sample_freq):
-        if not sample_freq is 0:
-            self.sample_freq = sample_freq
+    def update(self, *args, **kwargs):
+        data = kwargs.get('data', None)
+        clear_flag = kwargs.get('clear_flag', False)
+        sample_freq = kwargs.get('sample_freq', 44100)
+
         if clear_flag:
-            self.signal.emit([], True)
             self.yin_data = np.array([0])
+        
+        if data is None:
             return
-        
-        if not data:
-            return
-        
-        data = np.array(data)
-        
+
+        self.thread_queue.put(threading.Thread(target = self.yin, args=(data, sample_freq)))
+
+    
+    def yin(self, data, sample_freq):
         ### YIN algorithm ###
         # Differencing function (Step 1-2)
-        lag_min = int(np.ceil(self.sample_freq / self.freq_range[1]))
-        lag_max = int(np.ceil(self.sample_freq / self.freq_range[0]))
+        channel_sum = 0
+        if data.ndim > 1:
+            for channel in range(data.shape[1]):
+                channel_sum += data[:, channel]
+        lag_min = int(np.ceil(sample_freq / self.freq_range[1]))
+        lag_max = int(np.ceil(sample_freq / self.freq_range[0]))
         d = np.zeros(lag_max)
         d_prime = np.zeros(lag_max)
         for lag in range(1, lag_max):
-            rolled_data = data[lag:lag + lag_max]
-            base_data = data[0:lag_max]
+            rolled_data = channel_sum[lag:lag + lag_max]
+            base_data = channel_sum[0:lag_max]
             d[lag] = np.sum(np.square(rolled_data - base_data))
             
         # Normalization (Step 3)
@@ -87,8 +97,8 @@ class YinWidget(QWidget, Observable):
         period_candiates = {}
         window_length = lag_max
         for lag in range(lag_min, lag_max):
-            rolled_data = np.array(data[lag:int(np.ceil(lag + lag_max))]).astype('int64')
-            base_data = np.array(data[0:lag_max]).astype('int64')
+            rolled_data = np.array(channel_sum[lag:int(np.ceil(lag + lag_max))]).astype('int64')
+            base_data = np.array(channel_sum[0:lag_max]).astype('int64')
             periodic_power = (.25/window_length)*(np.sum(np.square(rolled_data + base_data)))
             aperiodic_power = (.25/window_length)*(np.sum(np.square(rolled_data - base_data)))
             aperiodic_power_ratio = aperiodic_power / (periodic_power + aperiodic_power)
@@ -103,19 +113,18 @@ class YinWidget(QWidget, Observable):
             pitch_d = self.sample_freq/np.argmin(d_prime)
         else:
             pitch_d = self.sample_freq/sorted_candidates[0][0] 
-            
-        ### End YIN algorithm ###
-        #if self.update_power(data) < self.power_sensitivity*self.average_power:
-        #    pitch_d = self.yin_data[-1]
 
-        self.signal.emit(pitch_d, False)
+        # If power too low
+        if self.update_power(data) < self.power_sensitivity*self.average_power:
+            if len(self.yin_data) > 0:
+                pitch_d = self.yin_data[-1]
+
         self.yin_data = np.append(self.yin_data, pitch_d)
-        
         self.yin_line.setData(range(min(self.yin_data.shape[0], self.num_display_vals)), 
                             self.yin_data[-self.num_display_vals:])
 
-        QtGui.QApplication.processEvents() 
 
+        return pitch_d
     
     def update_power(self, x):
         power = self.calculate_power(x)
@@ -126,78 +135,30 @@ class YinWidget(QWidget, Observable):
         self.power_samples = self.power_samples + 1
         self.average_power = self.average_power + (power / self.power_samples)
         
-        print(power)
-        print(self.peak_power)
-        print(self.average_power)
-        print("========================")
+        #print(power)
+        #print(self.peak_power)
+        #print(self.average_power)
+        #print("========================")
         
         return power
     
     def calculate_power(self, x):
+        # Assume x is at most Nx2
         x = x.astype(int)
-        return np.dot(x,x)
+        power = 0
+        if x.ndim < 2:
+            power = np.dot(x,x)
+        else:
+            for col in range(x.shape[1]):
+                power += np.dot(x[:, col], x[:, col])
+        return power
 
-if __name__ == '__main__':
-    #%% Open sound file, prepare arrays
-    sound_file = "../singing_samples/a_yeah_yeah.wav" # 'a' note
-    audio_data = wave.open(sound_file, 'rb')
-    
-    p = pyaudio.PyAudio()  
-    for i in range(0, p.get_device_count()):
-            print("name: " + p.get_device_info_by_index(i)["name"])
-            print("index: " + p.get_device_info_by_index(i)["index"])
-            print("\n")
-    #stream = p.open(format = p.get_format_from_width(audio_data.getsampwidth()),  
-    #                channels = audio_data.getnchannels(),  
-    #                rate = audio_data.getframerate(),  
-    #                output_device_index = 1,
-    #                output = True)     
-            
-    read_length = 2**11
-    observable = Observable()
-    #sound_player = SoundObserver(stream)
-    #observable.register(sound_player)
-        
-    data = audio_data.readframes(read_length)  
-    
-    pitch_array = np.ndarray([])
-    d_array = np.ndarray([])
-    
-    #%% Difference function
-    def difference_val(data, read_length):
-        lag_max = int(read_length/2)
-        d = np.zeros(lag_max)
-        for lag in range(0, lag_max):
-            rolled_data = data[lag:int(np.ceil(lag + lag_max))]
-            base_data = data[0:lag_max]
-            if len(rolled_data) != len(base_data):
-                break 
-            d[lag] = np.sum(np.abs(rolled_data - base_data))
-        return d
-    
-    #%% Find pitch for chunks of data
-    while data:  
-        #observable.update_observers(data)
-        data = np.fromstring(data, dtype=np.int16)
-        if data.shape[0] < read_length*2:
-            data = audio_data.readframes(read_length)
-            continue
-        
-        # autocorrelation with differencing (step 3)
-        d = difference_val(data, read_length)
-        d = d / ((1/float(read_length/2))*np.sum(d))
-    
-        d[:50] = np.inf
-        pitch_d = 44100/np.argmin(d)
-        print("difference: " + str(pitch_d))
-    
-        d_array = np.append(d_array, pitch_d)
-        data = audio_data.readframes(read_length)
-    
-    
-    #%% Show results
-    plt.plot(d_array)
-    plt.show()
-    
-    
-    
+    def run(self):
+        while True:
+            while self.thread_queue.empty():
+                pass
+            thread = self.thread_queue.get()
+            thread.start()
+            thread.join()
+            QtGui.QApplication.processEvents() 
+

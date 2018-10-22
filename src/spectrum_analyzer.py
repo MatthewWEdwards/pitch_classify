@@ -1,19 +1,20 @@
 import numpy as np
 import wave
-import sounddevice as sd
-import soundfile as sf
 import yaml
 import pyqtgraph as pg
 import time
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import QWidget, QPushButton, QFileDialog
 from PyQt5.QtWidgets import QLineEdit
+from scipy.signal import spectrogram
 import sys
+import threading
+import queue
 
-from observable import Observable
+from observer import Observer
 from observers import DisplayObserver, SoundObserver
 
-class SpectrumWidget(QWidget, Observable):
+class SpectrumWidget(QWidget, Observer):
     
     signal = QtCore.pyqtSignal(list, bool, int)
     playing_flag = False
@@ -27,11 +28,13 @@ class SpectrumWidget(QWidget, Observable):
     play_audio_flag = False
     quit_flag = False
     sample_rate = 44100
+    hann = True
 
-    def __init__(self):
+    def __init__(self, hann=True):
         super(QWidget, self).__init__()
         
         self.layout = QtGui.QGridLayout()
+        self.hann = hann
         
         ### Plot ###
         self.plot = pg.PlotWidget()
@@ -42,10 +45,6 @@ class SpectrumWidget(QWidget, Observable):
         ### End Plot ###
         
         ### Buttons ###
-        self.play_btn = QPushButton('Play File')
-        self.layout.addWidget(self.play_btn, 5, 0)
-        self.play_btn.clicked.connect(self.play_click)
-        
         self.logbtn = QPushButton('Toggle logscale')
         self.layout.addWidget(self.logbtn, 0, 0)
         self.logbtn.clicked.connect(self.log_click)
@@ -53,18 +52,12 @@ class SpectrumWidget(QWidget, Observable):
         self.dec_btn = QPushButton('Toggle dB')
         self.layout.addWidget(self.dec_btn, 1,0)
         self.dec_btn.clicked.connect(self.decible_click)
-        
-        self.load_btn = QPushButton('Load Audio File')
-        self.layout.addWidget(self.load_btn,4,0)
-        self.load_btn.clicked.connect(self.load_click)
-        self.file_text = QLineEdit()
-        self.layout.addWidget(self.file_text, 4, 1)
-        self.file_text.setReadOnly(True)
-        
-        self.pause_btn = QPushButton('Pause Audio')
-        self.layout.addWidget(self.pause_btn, 5, 1)
-        self.pause_btn.clicked.connect(self.pause_click)
         ### End Buttons ###
+
+        # Threading
+        self.thread_queue = queue.Queue()
+        spec_thread = threading.Thread(target = self.run)
+        spec_thread.start()
         
         self.plot.setXRange(self.freq_range[0], self.freq_range[1])
         self.plot.setYRange(0, 10**6)
@@ -73,76 +66,52 @@ class SpectrumWidget(QWidget, Observable):
         self.line = self.plot.plot(pen='y')
     
     """
-    Loads an audio file. Generates SoundObserver and DisplayObservers to handle
-    the data.
-    
-    Only works for .wav files
-    """
-    def start_audio(self):
-        # Open file
-        sound_file = self.file_name
-        if sound_file == "":
-            return
-        audio_data = sf.blocks(sound_file, dtype='float32', blocksize=self.read_length)
-        _, self.sample_rate = sf.read(sound_file)
-        print(self.sample_rate)
-        
-        self.play_audio_flag = True
-        self.play_audio(audio_data)
-    
-    """
     audio_data: file object from the output of a call to wave.read()
     TODO: audio_data only accepts .wav files. Make a wrapper class that can
           accept multiple file types.
     """
-    def play_audio(self, audio_data):
-        self.playing_flag = True
-        self.update_observers(clear_flag = True) # Clear plots
-        stream = sd.OutputStream(blocksize=self.read_length, channels=2, dtype='float32', samplerate=self.sample_rate)
-        stream.start()
+    def update(self, *args, **kwargs):
+        data = kwargs.get('data', None)
+        clear_flag = kwargs.get('clear_flag', False)
+        sample_freq = kwargs.get('sample_freq', 44100)
 
-        ## Set up Observer-Listeners
-        #sound_player = SoundObserver(stream)
-        displayer = DisplayObserver(stft_length = self.read_length, 
-                        freq_range=self.freq_range, hann=True, sample_freq=self.sample_rate)
-        #self.register(sound_player)
-        self.register(displayer)
+        if clear_flag:
+            self.clear()
+
+        if data is None:
+            return
         
-        for block in audio_data:
-            # If paused
-            while not self.play_audio_flag:
-                QtGui.QApplication.processEvents() 
-                
-            if self.quit_flag:
-                return
+        self.thread_queue.put(threading.Thread(target = self.set_plot, args=(data, sample_freq)))
 
-            self.update_observers(data = block)
-            
-            #########TODO: This section of code has performance issues
-            freq_data = displayer.freq_array
-            mag_data = displayer.mag_array
-            if self.decibles:
-                display_data = 20*np.log2(1+mag_data)
-            else:
-                display_data = mag_data
-            self.line.setData(freq_data, display_data)
-            #########
-            
-            while not sd.wait() is None:
-                pass
-            
-            stream.write(block)
-
-            QtGui.QApplication.processEvents() 
-            self.signal.emit(block.tolist(), False, self.sample_rate)
-            
-        #self.unregister(sound_player)
-        self.unregister(displayer)
-
-        self.playing_flag = False
-        
     def clear(self):
-        self.signal.emit([], True, 0)
+        pass 
+
+    def set_plot(self, data, sample_freq):
+        channel_sum = 0
+        if data.ndim > 1:
+            for channel in range(data.shape[1]):
+                channel_sum = channel_sum + data[:, channel]/data.shape[1]
+        freqs, display_data = self.transform(channel_sum, sample_freq)
+        freqs = np.array(freqs)
+        self.freq_data = freqs[np.where((freqs < self.freq_range[1]) & (freqs >= self.freq_range[0]))]
+        display_data = display_data[np.where((freqs < self.freq_range[1]) & (freqs >= self.freq_range[0]))]
+        len_data = len(display_data)/2
+        if self.decibles:
+            display_data = 20*np.log2(display_data / len_data)
+        self.display_data = display_data
+        self.line.setData(self.freq_data, self.display_data[:,0])
+        
+    def transform(self, data, sample_freq):
+        if self.hann:
+            data = data * np.hanning(len(data))    
+        
+        # TODO: Make this configurable
+        stft_length = 1024
+    
+        frequencies,_,data = spectrogram(data*(2**16), fs=sample_freq, nfft=4*stft_length, 
+            nperseg=stft_length, scaling='spectrum')
+        return (frequencies, data)
+        
         
     """
     Button functions
@@ -168,30 +137,19 @@ class SpectrumWidget(QWidget, Observable):
             self.plot.setYRange(0,500) # TODO: make this actually based on data
         else:
             self.plot.setYRange(0, 10**6)
-
-    def load_click(self):
-        options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
-        self.file_name, _ = QFileDialog.getOpenFileName(self,
-            "Select .wav file", "","(*.wav)", options=options)
-        self.file_text.setText(self.file_name) 
-        
-    def play_click(self):
-        if not self.playing_flag:
-            self.clear()
-            self.start_audio()
-    
-    def pause_click(self):
-        self.play_audio_flag = not self.play_audio_flag
-        
-    def quit_audio(self):
-        self.quit_flag = not self.quit_flag
-        self.play_audio_flag = True # Forces play loop to continue to allow for quitting
     """
     End button functions
     """
-
+    
+    def run(self):
+        while True:
+            while self.thread_queue.empty():
+                pass
+            thread = self.thread_queue.get()
+            thread.start()
+            thread.join()
         
+#XXX Deprecated main method, won't work.
 if __name__ == "__main__":
    # Needed because pyQT remains in spyder namespace
     app = QtCore.QCoreApplication.instance()
