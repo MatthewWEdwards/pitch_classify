@@ -11,6 +11,7 @@ import queue
 from observer import Observer
 
 from noconflict import classmaker
+from audio_singleton import AudioSingleton
 
 class YinWidget(QWidget, Observer):
     __metaclass__ = classmaker()
@@ -44,12 +45,9 @@ class YinWidget(QWidget, Observer):
         self.yin_line = self.yin_plot.plot(pen='y')
         self.yin_plot.setMouseEnabled(False, False)
         self.yin_plot.setYRange(0, 500)
+    
+        self.audio_singleton = AudioSingleton()
 
-        # Threading
-        self.thread_queue = queue.Queue()
-        yin_thread = threading.Thread(target = self.run)
-        yin_thread.start()
-        
         # End init
         self.show()
     
@@ -67,8 +65,7 @@ class YinWidget(QWidget, Observer):
         if data is None:
             return
 
-        self.thread_queue.put(threading.Thread(target = self.yin, args=(data, sample_freq)))
-
+        self.yin(self.audio_singleton.get_audio_data(data), self.audio_singleton.get_sample_rate())
     
     def yin(self, data, sample_freq):
         ### YIN algorithm ###

@@ -1,37 +1,18 @@
 import sounddevice as sd
-import soundfile as sf
 import numpy as np
-import sys
 import yaml
-import multiprocessing
-import ctypes
-from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QWidget, QPushButton, QFileDialog, QLineEdit
 
 from observable import Observable
-from observers import SoundObserver
-
-# TODO Am I actually going to use this class
-class DataHolder():
-    def __init__(self):
-        self.data = np.array((0,))
-        self.sample_rate = 44100
-
-    def update(self, data, sample_rate=None):
-        self.data = data
-        if not sample_rate is None:
-            self.sample_rate = sample_rate
+from audio_singleton import AudioSingleton
 
 class SystemWidget(QWidget, Observable):
     playing_flag = False
-    config = yaml.load(open('../config.yaml', 'rb').read())
-    file_name = ""
-    read_length = config['read_length']
-    sample_rate = 44100
     play_audio_flag = False
     quit_flag = False
-    data_holder = DataHolder()
     exist = True
+    config = yaml.load(open('../config.yaml', 'rb').read())
     
     def __init__(self, observers, quit=False):
         super(QWidget, self).__init__()
@@ -54,6 +35,8 @@ class SystemWidget(QWidget, Observable):
         self.layout.addWidget(self.pause_btn, 5, 1)
         self.pause_btn.clicked.connect(self.pause_click)
 
+        self.audio_singleton = AudioSingleton()
+
         if quit:
             self.quitbtn = QPushButton('Quit')
             self.layout.addWidget(self.quitbtn, 6, 0)
@@ -69,25 +52,23 @@ class SystemWidget(QWidget, Observable):
 
     def start_audio(self):
         # Open file
-        sound_file = self.file_name
+        sound_file = self.file_text.text()
         if sound_file == "":
             return
-        audio_data = sf.blocks(sound_file, dtype='float32', blocksize=self.read_length)
-        _, self.sample_rate = sf.read(sound_file)
-        print(self.sample_rate)
-        
+        self.audio_singleton.load(sound_file, "float32", self.config['read_length'])
         self.play_audio_flag = True
-        self.play_audio(audio_data)
+        self.play_audio()
     
-    def play_audio(self, audio_data):
+    def play_audio(self):
         self.playing_flag = True
         self.update_observers(clear_flag = True) # Clear plots
         # TODO: set "channels" based on the content of the audio file
-        stream = sd.OutputStream(blocksize=self.read_length, channels=2, 
-            dtype='float32', samplerate=self.sample_rate)
+        # TODO: Device index hardcoded
+        stream = sd.OutputStream(blocksize=self.config['read_length'], channels=2, 
+            dtype='float32', samplerate=self.audio_singleton.get_sample_rate(), device=3)
         stream.start()
-
-        for block in audio_data:
+        
+        for block_idx in range(self.audio_singleton.get_num_blocks()):
             # If paused
             while not self.play_audio_flag:
                 QtWidgets.QApplication.processEvents() 
@@ -97,13 +78,11 @@ class SystemWidget(QWidget, Observable):
             # Wait for audio to finish playing
             while not sd.wait() is None:
                 QtWidgets.QApplication.processEvents() 
-            self.update_observers(data = block)
-            stream.write(block)
-            #data = multiprocessing.Array(data, lock=False) # read-only data, lock can be false
-            
-            QtWidgets.QApplication.processEvents() 
+            stream.write(self.audio_singleton.get_audio_data(idx=block_idx))
+            self.update_observers(data = block_idx) 
             
         self.playing_flag = False
+        stream.close()
 
     def load_click(self):
         options = QFileDialog.Options()
@@ -128,18 +107,4 @@ class SystemWidget(QWidget, Observable):
         self.quit_audio()
         self.exist = False
         self.close()
-
-if __name__ == "__main__":
-    app = QtCore.QCoreApplication.instance()
-    if app is None:
-        app = QtWidgets.QApplication(sys.argv)
-        
-    widget = SystemWidget([], quit=True)
-    widget.show()
-    while widget.exist:
-        QtWidgets.QApplication.processEvents()
-    widget.close()
-
-    sys.exit(0)
-        
 

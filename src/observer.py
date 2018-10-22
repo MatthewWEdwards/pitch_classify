@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+# ABC - Abstract Base Class
  
 class Observer(object):
     __metaclass__ = ABCMeta
