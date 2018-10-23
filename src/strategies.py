@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.fftpack import fft, ifft
+import matplotlib.pyplot as plot
 
 class PitchDetectionStrategy:
 
@@ -75,9 +76,11 @@ class CepstrumStrategy(PitchDetectionStrategy):
             
         hann_data = np.hanning(len(channel_sum))
         cepstrum_data = np.absolute(ifft(np.log2(1+np.absolute(fft(channel_sum*hann_data)))**2))**2
-        
-        cepstrum_data = cepstrum_data[0:len(data)] 
+
+
+        cepstrum_data = cepstrum_data[:int(len(cepstrum_data)/2)] 
         min_index = int(np.ceil(sample_freq / freq_range[1]))
         cepstrum_data[:min_index] = 0 # assume freq < freq_range[1]
+
         return sample_freq/np.argmax(cepstrum_data)
         
