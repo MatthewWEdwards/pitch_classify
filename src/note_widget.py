@@ -1,19 +1,20 @@
 import numpy as np
 from PyQt5 import QtGui
-from PyQt5.QtGui import QPixmap, QLabel
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtGui import QPixmap 
+from PyQt5.QtWidgets import QWidget, QLabel
 import pyqtgraph as pg
+
+from observer import Observer
 
 from noconflict import classmaker
 
-class NoteWidget(QWidget):
+class NoteWidget(QWidget, Observer):
     _metaclass_ = classmaker()
     current_note = "N"
-    image_width = 300
-    image_height = 300
-    letter_images_path = "..\\Letters\\"
-    num_display_vals = 300
-    
+    image_width = 100
+    image_height = 100
+    letter_images_path = "../letters/"
+    num_display_vals = 100
     
     def __init__(self):
         super(QWidget, self).__init__()
@@ -32,7 +33,7 @@ class NoteWidget(QWidget):
         self.letter_display = QLabel()
         self.letter_display.resize(self.image_width, self.image_height)
         self.pixmap = QPixmap(self.image_width, self.image_height)
-        self.layout.addWidget(self.letter_display, 1, 0)
+        self.layout.addWidget(self.letter_display, 0, 1)
         
         # Init Holders
         self.note_data = np.array([0])
@@ -45,13 +46,18 @@ class NoteWidget(QWidget):
         return 69 + 12*np.log2(float(freq)/440)
     
     def get_note(self, freq):
-        return midi_table[int(self.hz_to_midi(freq))]
+        index = int(self.hz_to_midi(freq))
+        if index >= len(midi_table):
+            return midi_table[0] # TODO return an error code
+        return midi_table[index]
     
     def get_plot_val(self, freq):
         note = letter_map[self.get_note(freq)]
         return float(note) + (self.hz_to_midi(freq) % 1)
     
-    def update_trigger(self, freq, clear_flag):
+    def update(self, *args, **kwargs):
+        freq = kwargs.get('freq', 44100)
+        clear_flag = kwargs.get('clear_flag', False)
         if clear_flag:
             self.note_data = np.array([0])
             return
@@ -66,7 +72,6 @@ class NoteWidget(QWidget):
         self.letter_display.setPixmap(self.pixmap)
         
         # Update plot
-        
         self.note_data = np.append(self.note_data, self.get_plot_val(freq))
         self.note_line.setData(range(min(self.note_data.shape[0], self.num_display_vals)), 
                             self.note_data[-self.num_display_vals:])

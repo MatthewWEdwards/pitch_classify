@@ -1,0 +1,18 @@
+read_length: 2048
+sample_frequency: 44100
+
+plots:
+    freq_min: 50
+    freq_max: 1000
+    y_linear: 100000
+    y_log:    500
+
+yin:
+    threshold: 0.05
+    num_display: 300
+    
+cepstrum:
+    num_display: 300
+
+pitch:
+    num_display: 300

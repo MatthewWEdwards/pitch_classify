@@ -41,7 +41,7 @@ class SpectrumWidget(QWidget, Observer):
         
         self.plot.setXRange(self.config['plots']['freq_min'], 
                             self.config['plots']['freq_max'])
-        self.plot.setYRange(0, 10**6)
+        self.plot.setYRange(0, self.config['plots']['y_linear'])
         
         self.plot.setLogMode(False, False)
         self.line = self.plot.plot(pen='y')
@@ -50,13 +50,11 @@ class SpectrumWidget(QWidget, Observer):
     
     """
     audio_data: file object from the output of a call to wave.read()
-    TODO: audio_data only accepts .wav files. Make a wrapper class that can
-          accept multiple file types.
     """
     def update(self, *args, **kwargs):
         data = kwargs.get('data', None)
         clear_flag = kwargs.get('clear_flag', False)
-        sample_freq = kwargs.get('sample_freq', 44100)
+        sample_freq = kwargs.get('sample_freq', self.config['sample_frequency'])
 
         if clear_flag:
             self.clear()
@@ -79,8 +77,9 @@ class SpectrumWidget(QWidget, Observer):
         self.freq_data = freqs[np.where((freqs < self.config['plots']['freq_max']) & (freqs >= self.config['plots']['freq_min']))]
         display_data = display_data[np.where((freqs < self.config['plots']['freq_max']) & (freqs >= self.config['plots']['freq_min']))]
         len_data = len(display_data)/2
+        display_data = display_data/(len_data)
         if self.decibels:
-            display_data = 20*np.log2(display_data / len_data)
+            display_data = 20*np.log2(display_data)
         self.display_data = display_data
         self.line.setData(self.freq_data, self.display_data[:,0])
         QtWidgets.QApplication.processEvents() 
@@ -110,16 +109,16 @@ class SpectrumWidget(QWidget, Observer):
             self.plot.setXRange(self.config['plots']['freq_min'], self.config['plots']['freq_max'])
         
         if self.decibels:
-            self.plot.setYRange(0,500)
+            self.plot.setYRange(0,self.config['plots']['y_log'])
         else:
-            self.plot.setYRange(0, 10**6)
+            self.plot.setYRange(0, self.config['plots']['y_linear'])
             
     def decibel_click(self):
         self.decibels = not self.decibels
         if self.decibels:
-            self.plot.setYRange(0,500) # TODO: make this actually based on data
+            self.plot.setYRange(0,self.config['plots']['y_log'])
         else:
-            self.plot.setYRange(0, 10**6)
+            self.plot.setYRange(0, self.config['plots']['y_linear'])
     """
     End button functions
     """

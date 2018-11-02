@@ -12,7 +12,7 @@ from observers import SoundObserver
 
 from noconflict import classmaker
 
-
+#FIXME: Occasionally throws divide by zero error. In case: read_length = 2000 and the A-note opera singer sample
 class CepstrumWidget(QWidget):
     __metaclass__ = classmaker()
     

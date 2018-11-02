@@ -21,14 +21,14 @@ class MultiWidget(QWidget):
             
         if spec is None:
             spec = SpectrumWidget()
+        if note is None:
+            note = NoteWidget()
         if pitch is None:
-            pitch = PitchWidget()
-#        if note is None:
-#            note = NoteWidget()
+            pitch = PitchWidget(note_widget = note)
         if sys_w is None:
             sys_w = SystemWidget([spec, pitch], quit=False)
 
-        self.widgets = [sys_w, spec, pitch]
+        self.widgets = [sys_w, spec, pitch, note]
 
         for widget in range(len(self.widgets)):
             self.layout.addWidget(self.widgets[widget], widget, 0)

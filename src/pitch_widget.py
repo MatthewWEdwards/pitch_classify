@@ -9,6 +9,7 @@ import threading
 import queue
 
 from observer import Observer
+from observable import Observable
 
 from noconflict import classmaker
 from audio_singleton import AudioSingleton
@@ -16,7 +17,7 @@ from PitchDetectionStrategy import PitchDetectionStrategy
 from YinStrategy import YinStrategy
 from CepstrumStrategy import CepstrumStrategy
 
-class PitchWidget(QWidget, Observer):
+class PitchWidget(QWidget, Observer, Observable):
     __metaclass__ = classmaker()
     
     peak_power = 0
@@ -25,13 +26,15 @@ class PitchWidget(QWidget, Observer):
     power_sensitivity = .1
     pitch_data = np.array([0])
 
-    def __init__(self, sample_freq=None, pitch_strategies=None):
+    def __init__(self, sample_freq=None, pitch_strategies=None, note_widget=None):
         super(QWidget, self).__init__()
+        super(Observer, self).__init__()
 
         if pitch_strategies is None:
-            self.pitch_strategies = [YinStrategy(), CepstrumStrategy()]
-        else:
-            pass
+            self.pitch_strategies = [CepstrumStrategy(), YinStrategy()]
+
+        if not note_widget is None:
+            self.register(note_widget)
         
         self.layout = QtGui.QGridLayout()
         self.setLayout(self.layout)
@@ -52,8 +55,8 @@ class PitchWidget(QWidget, Observer):
         self.pitch_plot.setYRange(0, 500)
 
         self.comboBox = QComboBox()
-        self.comboBox.addItem("Yin")
         self.comboBox.addItem("Cepstrum")
+        self.comboBox.addItem("Yin")
         self.layout.addWidget(self.comboBox, 0, 0)
     
         # Data holder
@@ -61,8 +64,6 @@ class PitchWidget(QWidget, Observer):
 
         # End init
         self.show()
-
-        
     
     def update(self, *args, **kwargs):
         data = kwargs.get('data', None)
@@ -85,7 +86,10 @@ class PitchWidget(QWidget, Observer):
 
         self.pitch_data = np.append(self.pitch_data, pitch_d)
         self.pitch_line.setData(range(min(self.pitch_data.shape[0], self.config['pitch']['num_display'])), 
-                            self.pitch_data[-self.config['pitch']['num_display']:])
+        self.pitch_data[-self.config['pitch']['num_display']:])
+
+        if len(self.observers) > 0:
+            self.update_observers(freq = pitch_d)
 
     def update_power(self, x):
         power = self.calculate_power(x)
@@ -108,5 +112,4 @@ class PitchWidget(QWidget, Observer):
             for col in range(x.shape[1]):
                 power += np.dot(x[:, col], x[:, col])
         return power
-
 
