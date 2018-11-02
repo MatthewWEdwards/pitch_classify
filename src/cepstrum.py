@@ -23,7 +23,7 @@ class CepstrumWidget(QWidget):
         self.setLayout(self.layout)
         
         # Defaults              
-        config = yaml.load(open('../config.yaml', 'r').read())
+        config = yaml.load(open('config.yaml', 'r').read())
         self.read_length = config['read_length']
         self.freq_range = [config['plots']['freq_min'], config['plots']['freq_max']]
         self.sample_freq = config['sample_frequency']

@@ -4,7 +4,7 @@ import pyqtgraph as pg
 import yaml
 import matplotlib.pyplot as plt
 from PyQt5 import QtGui, QtCore
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QComboBox
 import threading
 import queue
 
@@ -12,7 +12,9 @@ from observer import Observer
 
 from noconflict import classmaker
 from audio_singleton import AudioSingleton
-from strategies import PitchDetectionStrategy, YinStrategy, CepstrumStrategy
+from PitchDetectionStrategy import PitchDetectionStrategy
+from YinStrategy import YinStrategy
+from CepstrumStrategy import CepstrumStrategy
 
 class PitchWidget(QWidget, Observer):
     __metaclass__ = classmaker()
@@ -23,17 +25,19 @@ class PitchWidget(QWidget, Observer):
     power_sensitivity = .1
     pitch_data = np.array([0])
 
-    def __init__(self, sample_freq=None, pitch_strategy=None):
+    def __init__(self, sample_freq=None, pitch_strategies=None):
         super(QWidget, self).__init__()
 
-        if pitch_strategy is None:
-            self.pitch_strategy = CepstrumStrategy()
+        if pitch_strategies is None:
+            self.pitch_strategies = [YinStrategy(), CepstrumStrategy()]
+        else:
+            pass
         
         self.layout = QtGui.QGridLayout()
         self.setLayout(self.layout)
         
         # Config Values              
-        self.config = yaml.load(open('../config.yaml', 'rb').read())
+        self.config = yaml.load(open('config.yaml', 'rb').read())
         self.read_length = self.config['read_length']
         self.freq_range = [self.config['plots']['freq_min'], self.config['plots']['freq_max']]
         if sample_freq is None:
@@ -42,20 +46,24 @@ class PitchWidget(QWidget, Observer):
         
         # Plots
         self.pitch_plot = pg.PlotWidget()
-        self.layout.addWidget(self.pitch_plot, 0, 0)
+        self.layout.addWidget(self.pitch_plot, 1, 0)
         self.pitch_line = self.pitch_plot.plot(pen='y')
         self.pitch_plot.setMouseEnabled(False, False)
         self.pitch_plot.setYRange(0, 500)
+
+        self.comboBox = QComboBox()
+        self.comboBox.addItem("Yin")
+        self.comboBox.addItem("Cepstrum")
+        self.layout.addWidget(self.comboBox, 0, 0)
     
-		# Data holder
+        # Data holder
         self.audio_singleton = AudioSingleton()
 
         # End init
         self.show()
+
+        
     
-    """
-    Sound is not played by this function
-    """
     def update(self, *args, **kwargs):
         data = kwargs.get('data', None)
         clear_flag = kwargs.get('clear_flag', False)
@@ -67,7 +75,8 @@ class PitchWidget(QWidget, Observer):
         if data is None:
             return
 
-        pitch_d = self.pitch_strategy.detect_pitch(data = self.audio_singleton.get_audio_data(data), sample_freq = self.audio_singleton.get_sample_rate())
+        pitch_d = self.pitch_strategies[self.comboBox.currentIndex()].detect_pitch(
+            data = self.audio_singleton.get_audio_data(data), sample_freq = self.audio_singleton.get_sample_rate())
         
         # If power too low
         if self.update_power(self.audio_singleton.get_audio_data(data)) < self.power_sensitivity*self.average_power:

@@ -3,7 +3,6 @@ from PyQt5.QtWidgets import QWidget, QPushButton
 import sys
 
 from spectrum_analyzer import SpectrumWidget
-#from cepstrum import CepstrumWidget
 from pitch_widget import PitchWidget
 from note_widget import NoteWidget
 from system_widget import SystemWidget

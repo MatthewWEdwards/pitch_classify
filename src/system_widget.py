@@ -12,7 +12,7 @@ class SystemWidget(QWidget, Observable):
     play_audio_flag = False
     quit_flag = False
     exist = True
-    config = yaml.load(open('../config.yaml', 'rb').read())
+    config = yaml.load(open('config.yaml', 'rb').read())
     
     def __init__(self, observers, quit=False):
         super(QWidget, self).__init__()
@@ -65,7 +65,7 @@ class SystemWidget(QWidget, Observable):
         # TODO: set "channels" based on the content of the audio file
         # TODO: Device index hardcoded
         stream = sd.OutputStream(blocksize=self.config['read_length'], channels=2, 
-            dtype='float32', samplerate=self.audio_singleton.get_sample_rate(), device=3)
+            dtype='float32', samplerate=self.audio_singleton.get_sample_rate())
         stream.start()
         
         for block_idx in range(self.audio_singleton.get_num_blocks()):

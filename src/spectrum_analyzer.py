@@ -13,7 +13,7 @@ class SpectrumWidget(QWidget, Observer):
     decibels = False
     hann = True
     playing_flag = False
-    config = yaml.load(open('../config.yaml', 'rb').read())
+    config = yaml.load(open('config.yaml', 'rb').read())
 
     def __init__(self, hann=True):
         super(QWidget, self).__init__()
