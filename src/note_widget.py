@@ -3,6 +3,7 @@ from PyQt5 import QtGui
 from PyQt5.QtGui import QPixmap 
 from PyQt5.QtWidgets import QWidget, QLabel
 import pyqtgraph as pg
+import yaml
 
 from observer import Observer
 
@@ -21,6 +22,9 @@ class NoteWidget(QWidget, Observer):
         
         self.layout = QtGui.QGridLayout()
         self.setLayout(self.layout)
+
+        # Config
+        self.config = yaml.load(open('config.yaml', 'rb').read())
         
         # Plot
         self.note_plot = pg.PlotWidget()
@@ -37,7 +41,7 @@ class NoteWidget(QWidget, Observer):
         
         # Init Holders
         self.note_data = np.array([0])
-        self.num_display_vals = 300 # TODO: make changeable
+        self.num_display_vals = self.config['note']['num_display'] 
         
         # End init
         self.show()
