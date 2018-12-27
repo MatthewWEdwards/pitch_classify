@@ -1,11 +1,5 @@
-read_length: 2048
+read_length: 4096
 sample_frequency: 44100
-
-plots:
-    freq_min: 50
-    freq_max: 1000
-    y_linear: 100000
-    y_log:    500
 
 yin:
     threshold: 0.05
@@ -14,5 +8,14 @@ yin:
 cepstrum:
     num_display: 300
 
+note:
+    num_display: 300    
+
+plots:
+    y_linear: 65000
+    freq_min: 20
+    freq_max: 1000
+
 pitch:
     num_display: 300
+    power_sensitivity: 0.05
