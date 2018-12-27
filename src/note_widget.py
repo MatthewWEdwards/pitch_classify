@@ -4,6 +4,8 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QWidget, QLabel
 import pyqtgraph as pg
 import yaml
+import traceback
+import sys
 
 from observer import Observer
 
@@ -47,12 +49,17 @@ class NoteWidget(QWidget, Observer):
         self.show()
         
     def hz_to_midi(self, freq):
-        return 69 + 12*np.log2(float(freq)/440)
+        if freq <= 20:
+            freq = 20.0
+        if freq == np.inf:
+            freq = 20.0
+        freq = float(freq)
+        return 69 + 12*np.log2(freq/440.0)
     
     def get_note(self, freq):
         index = int(self.hz_to_midi(freq))
-        if index >= len(midi_table):
-            return midi_table[0] # TODO return an error code
+        if index >= len(midi_table) or index < 0:
+            return midi_table[12] # TODO return an error code
         return midi_table[index]
     
     def get_plot_val(self, freq):
@@ -60,26 +67,30 @@ class NoteWidget(QWidget, Observer):
         return float(note) + (self.hz_to_midi(freq) % 1)
     
     def update(self, *args, **kwargs):
-        freq = kwargs.get('freq', 44100)
-        clear_flag = kwargs.get('clear_flag', False)
-        if clear_flag:
-            self.note_data = np.array([0])
-            return
-        
-        note = self.get_note(freq)
-        
-        # Update letter image
-        note_name = note[0]
-        if note.find("#") != -1:
-            note_name = note_name + "_sharp"
-        self.pixmap.load(self.letter_images_path + note_name)
-        self.letter_display.setPixmap(self.pixmap)
-        
-        # Update plot
-        self.note_data = np.append(self.note_data, self.get_plot_val(freq))
-        self.note_line.setData(range(min(self.note_data.shape[0], self.num_display_vals)), 
-                            self.note_data[-self.num_display_vals:])
-        
+        try:
+            freq = kwargs.get('freq', 44100)
+            clear_flag = kwargs.get('clear_flag', False)
+            if clear_flag:
+                self.note_data = np.array([0])
+                return
+            
+            note = self.get_note(freq)
+            
+            # Update letter image
+            note_name = note[0]
+            if note.find("#") != -1:
+                note_name = note_name + "_sharp"
+            self.pixmap.load(self.letter_images_path + note_name)
+            self.letter_display.setPixmap(self.pixmap)
+            
+            # Update plot
+            self.note_data = np.append(self.note_data, self.get_plot_val(freq))
+            self.note_line.setData(range(min(self.note_data.shape[0], self.num_display_vals)), 
+                                self.note_data[-self.num_display_vals:])
+        except Exception as e:
+            print(e)
+            print(''.join(traceback.format_tb(e.__traceback__)))
+            sys.exit()
     
 midi_table = {
     12: "C",
