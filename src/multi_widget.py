@@ -10,8 +10,6 @@ from audio_singleton import AudioSingleton
 
 class MultiWidget(QtWidgets.QMainWindow):
 
-    exist = True
-    
     def __init__(self, spec = None, pitch = None, note = None, sys_w = None):
         super().__init__()
         self.setObjectName("MainWindow")
@@ -29,37 +27,44 @@ class MultiWidget(QtWidgets.QMainWindow):
         self.spec_gbox = QtWidgets.QGroupBox("Spectrum")
         self.spec_gbox_l = QtWidgets.QGridLayout(self.spec_gbox)
         self.spec_gbox_l.addWidget(spec)
-        self.layout.addWidget(self.spec_gbox, 0, 1, 8, 3)
+        self.layout.addWidget(self.spec_gbox, 2, 0, 8, 8)
 
         if note is None:
             note = NoteWidget()
         self.note_gbox = QtWidgets.QGroupBox("Note Plot")
         self.note_gbox_l = QtWidgets.QGridLayout(self.note_gbox)
         self.note_gbox_l.addWidget(note)
-        self.layout.addWidget(self.note_gbox, 0, 4, 4, 2)
+        self.layout.addWidget(self.note_gbox, 0, 8, 4, 2)
 
         if pitch is None:
             pitch = PitchWidget(note_widget = note)
         self.pitch_gbox = QtWidgets.QGroupBox("Pitch Plot")
         self.pitch_gbox_l = QtWidgets.QGridLayout(self.pitch_gbox)
         self.pitch_gbox_l.addWidget(pitch)
-        self.layout.addWidget(self.pitch_gbox, 4, 4, 4, 1)
+        self.layout.addWidget(self.pitch_gbox, 4, 8, 4, 1)
 
         if sys_w is None:
             sys_w = SystemWidget([spec, pitch], quit=False)
         self.sys_gbox = QtWidgets.QGroupBox("System Control")
         self.sys_gbox_l = QtWidgets.QGridLayout(self.sys_gbox)
         self.sys_gbox_l.addWidget(sys_w)
-        self.layout.addWidget(self.sys_gbox, 0, 0)
+        self.layout.addWidget(self.sys_gbox, 0, 0, 1, 1)
 
         self.quit_btn = QPushButton('Quit')
-        self.layout.addWidget(self.quit_btn, 1, 0)
+        self.layout.addWidget(self.quit_btn, 1, 0, 1, 1)
         self.quit_btn.clicked.connect(self.quit)
 
+    def closeEvent(self, event):
+        """ Called when the PyQt window is closed. Inherited from QtWidgets.QWidget.
+        
+            Args:
+                event (QCloseEvents): The PyQt event which triggered this function.
+        """
+        sys.exit(app.exec_())
+
+
     def quit(self):
-        sys_w.quit()
-        self.close()
-        self.exist = False
+        sys.exit(app.exec_())
         
 if __name__ == '__main__':
     myApp = QtWidgets.QApplication.instance()
